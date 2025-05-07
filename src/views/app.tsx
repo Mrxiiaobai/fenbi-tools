@@ -65,29 +65,6 @@ export const App = () => {
         setPage((prev) => prev + 1);
         setSolutionData(message.data);
       }
-      if (message.command === "webviewHide") {
-        vscode.postMessage({
-          command: "cacheData",
-          postData: {
-            isFirst,
-            startTime,
-            lastAnswerRecord,
-            questionData: questionData,
-            solutionData: solutionData,
-            cacheData: cacheData,
-            page,
-          },
-        });
-      }
-      if (message.command === "webviewShow") {
-        setFirst(message.data.isFirst);
-        setStartTime(message.data.startTime);
-        setLastAnswerRecord(message.data.lastAnswerRecord);
-        setQuestionData(message.data.questionData);
-        setSolutionData(message.data.solutionData);
-        setCacheData(message.data.cacheData);
-        setPage(message.data.page);
-      }
     });
   }, []);
 
