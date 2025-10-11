@@ -158,7 +158,7 @@ export const modifyArray = (arr: any[], cacheKey: number[], level = 1) => {
 
     if (level > 1) {
       newItem.label = `${item.name} (${item.answerCount}/${item.count}) ${
-        cacheKey?.includes(item.id) ? "继续答题" : ""
+        cacheKey?.includes(item.id) ? "（继续答题）" : ""
       }`;
     }
 
@@ -169,7 +169,7 @@ export const modifyArray = (arr: any[], cacheKey: number[], level = 1) => {
         const allOption = {
           ...item,
           key: item.id, // 使用父级 key 作为 "全部" 选项的 key
-          label: `全部 ${cacheKey?.includes(item.id) ? "继续答题" : ""}`,
+          label: `全部 ${cacheKey?.includes(item.id) ? "（继续答题）" : ""}`,
           children: null,
         };
         // 递归处理子项，并在第二级添加 "全部"

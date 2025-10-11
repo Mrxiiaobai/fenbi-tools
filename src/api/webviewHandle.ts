@@ -6,6 +6,7 @@ import {
   getCategories,
   getExercises,
   getExercisesId,
+  getXingceHistory,
   getQuestion,
   getSolution,
   incr,
@@ -28,6 +29,23 @@ export default class WebviewHandle {
         this.studyTime(postData);
         if (message.inc) this.inc(postData);
       }
+      if (command === "history") {
+        this.getHistory(postData);
+      }
+    });
+  }
+
+  async getHistory({
+    count,
+    categoryId,
+  }: { count?: number; categoryId?: number } = {}) {
+    const res = await getXingceHistory({
+      count: count || 15,
+      categoryId: categoryId || undefined,
+    });
+    webview.postMessage({
+      command: "history",
+      data: res.datas,
     });
   }
 
@@ -59,7 +77,15 @@ export default class WebviewHandle {
       postExerciseId = res.id;
     }
     const exerciseResult = await getExercises(postExerciseId as number);
+    console.log(
+      "🚀 ~ WebviewHandle ~ getQuestion ~ exerciseResult:",
+      exerciseResult
+    );
     const questionResult = await getQuestion(postExerciseId as number);
+    console.log(
+      "🚀 ~ WebviewHandle ~ getQuestion ~ questionResult:",
+      questionResult
+    );
 
     if (exerciseResult?.userAnswers) {
       const userAnswers = exerciseResult.userAnswers;

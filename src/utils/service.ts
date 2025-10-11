@@ -77,6 +77,20 @@ https://tiku.fenbi.com/activity/report/studyTime?app=web&kav=100&av=100&hav=100&
   return res;
 };
 
+export const getXingceHistory = async ({
+  count = 15,
+  categoryId,
+}: {
+  count?: number;
+  categoryId?: number;
+}) => {
+  const url = `https://tiku.fenbi.com/api/xingce/category-exercises?categoryId=${categoryId}&cursor=0&count=${count}&noCacheTag=${Math.round(
+    1e3 * Math.random()
+  )}&app=web&kav=100&av=100&hav=100&version=3.0.0.0`;
+  const res = await ajax("GET", url);
+  return res;
+};
+
 export const incr = async (
   exercisesId: number,
   params: {

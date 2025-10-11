@@ -11,6 +11,8 @@ import {
 import { QuestionItem } from "./components/question-item";
 import { QuestionCount } from "./components/question-count";
 import { ThemeContext } from "./context/themeContext";
+import { HistoryItem } from "./components/history-item";
+import { HistoryCard } from "./components/history-card";
 import "./style/index.less";
 
 declare const acquireVsCodeApi: any;
@@ -29,6 +31,8 @@ export const App = () => {
   const [messageApi, messageHoder] = message.useMessage();
   const [isFirst, setFirst] = React.useState(false);
   const [startTime, setStartTime] = React.useState(0);
+  const [historyList, setHistoryList] = React.useState<any>([]);
+  const [pageName, setPageName] = React.useState<string>("");
   const [lastAnswerRecord, setLastAnswerRecord] =
     React.useState<TLastAnswerRecord>({
       // lastTime: 0,
@@ -54,7 +58,16 @@ export const App = () => {
       setLoading(false);
 
       if (message.command === "setting") setTheme(message.data);
-      if (message.command === "init") setTreeData(message.data);
+      if (message.command === "init") {
+        vscode.postMessage({
+          command: "history",
+          postData: {
+            count: 1,
+            categoryId: 4,
+          },
+        });
+        setTreeData(message.data);
+      }
       if (message.command === "pageCache") setCacheData(message.data);
       if (message.command === "getQuestion") setQuestionData(message.data);
       if (message.command === "message") {
@@ -64,6 +77,9 @@ export const App = () => {
       if (message.command === "solution") {
         setPage((prev) => prev + 1);
         setSolutionData(message.data);
+      }
+      if (message.command === "history") {
+        setHistoryList(message.data);
       }
     });
   }, []);
@@ -108,6 +124,17 @@ export const App = () => {
     if (cacheData?.keypointIds?.includes(Number(key))) {
       exerciseId = cacheData?.exerciseId;
     }
+    getQuestion({ key: Number(key), exerciseId });
+  };
+
+  const getQuestion = ({
+    key,
+    exerciseId,
+  }: {
+    key: number;
+    exerciseId?: number | null;
+  }) => {
+    setLoading(true);
     vscode.postMessage({
       command: "getQuestion",
       postData: { id: key, exerciseId },
@@ -116,7 +143,7 @@ export const App = () => {
   };
 
   const onBack = () => {
-    if (page == 2) {
+    if (page == 2 && pageName == "") {
       setLoading(true);
       vscode.postMessage({
         command: "pageInit",
@@ -202,6 +229,18 @@ export const App = () => {
     });
   };
 
+  const goHistory = () => {
+    vscode.postMessage({
+      command: "history",
+      postData: {
+        count: 15,
+        categoryId: 3,
+      },
+    });
+    setPage(1);
+    setPageName("history");
+  };
+
   const obj: { [key: string]: any[] } = {
     1: [],
     2: questions,
@@ -214,9 +253,19 @@ export const App = () => {
     <div>
       <ThemeContext.Provider value={setting}>
         <Spin tip="loading..." spinning={loading}>
-          {page == 1 ? (
+          {page == 1 && pageName == "" ? (
             <div>
               <div className="menu-container">
+                <HistoryCard
+                  onClick={goHistory}
+                  data={historyList}
+                  goExercise={(data) => {
+                    getQuestion({
+                      key: data?.[0]?.id,
+                      exerciseId: data?.[0]?.id,
+                    });
+                  }}
+                />
                 <QuestionCount onChange={onQuestionCountChange} />
                 <Menu
                   theme="dark"
@@ -226,6 +275,33 @@ export const App = () => {
                   items={treeData}
                 />
               </div>
+            </div>
+          ) : null}
+
+          {page == 1 && pageName == "history" ? (
+            <div className="menu-container">
+              <Button
+                type="text"
+                onClick={() => {
+                  setPageName("");
+                }}
+              >
+                返回上一页
+              </Button>
+              {historyList.map((item: any, index: number) => {
+                return (
+                  <HistoryItem
+                    key={index}
+                    data={item}
+                    goExercise={(data) => {
+                      getQuestion({
+                        key: data?.id,
+                        exerciseId: data?.id,
+                      });
+                    }}
+                  />
+                );
+              })}
             </div>
           ) : null}
 

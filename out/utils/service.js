@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getUserQuestionInfo = exports.changeQuestionCount = exports.getUserInfo = exports.submit = exports.incr = exports.studyTime = exports.getQuestion = exports.getCache = exports.getSolution = exports.getCategories = exports.getExercises = exports.getExercisesId = void 0;
+exports.getUserQuestionInfo = exports.changeQuestionCount = exports.getUserInfo = exports.submit = exports.incr = exports.getXingceHistory = exports.studyTime = exports.getQuestion = exports.getCache = exports.getSolution = exports.getCategories = exports.getExercises = exports.getExercisesId = void 0;
 // import * as vscode from "vscode";
 const request_1 = require("./request");
 const getExercisesId = (params) => __awaiter(void 0, void 0, void 0, function* () {
@@ -68,6 +68,12 @@ https://tiku.fenbi.com/activity/report/studyTime?app=web&kav=100&av=100&hav=100&
     return res;
 });
 exports.studyTime = studyTime;
+const getXingceHistory = ({ count = 15, categoryId, }) => __awaiter(void 0, void 0, void 0, function* () {
+    const url = `https://tiku.fenbi.com/api/xingce/category-exercises?categoryId=${categoryId}&cursor=0&count=${count}&noCacheTag=${Math.round(1e3 * Math.random())}&app=web&kav=100&av=100&hav=100&version=3.0.0.0`;
+    const res = yield (0, request_1.default)("GET", url);
+    return res;
+});
+exports.getXingceHistory = getXingceHistory;
 const incr = (exercisesId, params) => __awaiter(void 0, void 0, void 0, function* () {
     const url = `https://tiku.fenbi.com/api/xingce/async/exercises/${exercisesId}/incr?app=web&kav=100&av=100&hav=100&version=3.0.0.0`;
     const res = yield (0, request_1.default)("POST", url, [params]);

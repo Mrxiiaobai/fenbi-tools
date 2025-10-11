@@ -32,6 +32,21 @@ class WebviewHandle {
                 if (message.inc)
                     this.inc(postData);
             }
+            if (command === "history") {
+                this.getHistory(postData);
+            }
+        });
+    }
+    getHistory({ count, categoryId, } = {}) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const res = yield (0, service_1.getXingceHistory)({
+                count: count || 15,
+                categoryId: categoryId || undefined,
+            });
+            webview_1.webview.postMessage({
+                command: "history",
+                data: res.datas,
+            });
         });
     }
     pageInit() {
@@ -61,7 +76,9 @@ class WebviewHandle {
                 postExerciseId = res.id;
             }
             const exerciseResult = yield (0, service_1.getExercises)(postExerciseId);
+            console.log("🚀 ~ WebviewHandle ~ getQuestion ~ exerciseResult:", exerciseResult);
             const questionResult = yield (0, service_1.getQuestion)(postExerciseId);
+            console.log("🚀 ~ WebviewHandle ~ getQuestion ~ questionResult:", questionResult);
             if (exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.userAnswers) {
                 const userAnswers = exerciseResult.userAnswers;
                 ((questionResult === null || questionResult === void 0 ? void 0 : questionResult.questions) || []).forEach((item) => {
