@@ -1,9 +1,9 @@
 {
   "name": "fenbi-tools",
   "displayName": "Fenbi Tools",
-  "description": "摸鱼学习，考公必备",
+  "description": "粉笔考公、摸鱼学习、考公必备，支持自定义数量",
   "icon": "resources/dark/fish.png",
-  "version": "1.0.7",
+  "version": "1.0.8",
   "license": "ISC",
   "engines": {
     "vscode": "^1.96.0"
