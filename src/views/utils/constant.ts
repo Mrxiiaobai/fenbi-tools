@@ -14,3 +14,19 @@ export const radioMap: TRadioMap = {
   "10": "J",
   "11": "K",
 };
+
+export enum SELECTENUM {
+  XINGCE = "xingce",
+  SHENLUN = "shenlun",
+}
+
+export const categoryOptions = [
+  {
+    label: "行测",
+    value: SELECTENUM.XINGCE,
+  },
+  {
+    label: "申论",
+    value: SELECTENUM.SHENLUN,
+  },
+];

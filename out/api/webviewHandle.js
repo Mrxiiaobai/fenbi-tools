@@ -18,7 +18,7 @@ class WebviewHandle {
         webview_1.webview.onDidReceiveMessage((message) => {
             const { postData = {}, command = "" } = message || {};
             if (command === "pageInit")
-                this.pageInit();
+                this.pageInit(postData);
             if (command === "getQuestion")
                 this.getQuestion(postData);
             if (command === "submit")
@@ -37,22 +37,24 @@ class WebviewHandle {
             }
         });
     }
-    getHistory({ count, categoryId, } = {}) {
+    getHistory({ category = "xingce", count, categoryId, } = {}) {
         return __awaiter(this, void 0, void 0, function* () {
-            const res = yield (0, service_1.getXingceHistory)({
+            const res = yield (0, service_1.getHistory)({
+                category,
                 count: count || 15,
                 categoryId: categoryId || undefined,
             });
+            console.log("🚀 ~ WebviewHandle ~ getHistory ~ category:", category);
             webview_1.webview.postMessage({
                 command: "history",
                 data: res.datas,
             });
         });
     }
-    pageInit() {
+    pageInit(postData) {
         return __awaiter(this, void 0, void 0, function* () {
-            const cacheResult = yield (0, service_1.getCache)();
-            const res = yield (0, service_1.getCategories)();
+            const cacheResult = yield (0, service_1.getCache)((postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce");
+            const res = yield (0, service_1.getCategories)((postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce");
             const config = vscode.workspace.getConfiguration("fenbiTools");
             webview_1.webview.postMessage({
                 command: "setting",
@@ -68,17 +70,21 @@ class WebviewHandle {
             });
         });
     }
-    getQuestion({ id, exerciseId }) {
+    getQuestion({ category, id, exerciseId, }) {
         return __awaiter(this, void 0, void 0, function* () {
             let postExerciseId = exerciseId;
             if (!postExerciseId) {
-                const res = yield (0, service_1.getExercisesId)({ keypointId: id });
+                const params = {
+                    keypointId: id,
+                };
+                if (category === "shenlun") {
+                    params.count = 1;
+                }
+                const res = yield (0, service_1.getExercisesId)(category, params);
                 postExerciseId = res.id;
             }
-            const exerciseResult = yield (0, service_1.getExercises)(postExerciseId);
-            console.log("🚀 ~ WebviewHandle ~ getQuestion ~ exerciseResult:", exerciseResult);
-            const questionResult = yield (0, service_1.getQuestion)(postExerciseId);
-            console.log("🚀 ~ WebviewHandle ~ getQuestion ~ questionResult:", questionResult);
+            const exerciseResult = yield (0, service_1.getExercises)(category, postExerciseId);
+            const questionResult = yield (0, service_1.getQuestion)(category, postExerciseId);
             if (exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.userAnswers) {
                 const userAnswers = exerciseResult.userAnswers;
                 ((questionResult === null || questionResult === void 0 ? void 0 : questionResult.questions) || []).forEach((item) => {
@@ -108,11 +114,18 @@ class WebviewHandle {
     }
     inc(params) {
         return __awaiter(this, void 0, void 0, function* () {
-            yield (0, service_1.incr)(params.exerciseId, {
-                answer: {
-                    type: 201,
-                    choice: String(params.lastAnswer),
-                },
+            let answer = {
+                type: 201,
+                choice: String(params.lastAnswer),
+            };
+            if (params.category == "shenlun") {
+                answer = {
+                    type: 204,
+                    answer: params.answer,
+                };
+            }
+            yield (0, service_1.incr)(params.category, params.exerciseId, {
+                answer: answer,
                 flag: 0,
                 questionId: params.lastQuestionId,
                 questionIndex: params.lastCount,
@@ -123,25 +136,35 @@ class WebviewHandle {
     submit(params) {
         return __awaiter(this, void 0, void 0, function* () {
             yield this.inc(params);
-            yield (0, service_1.submit)(params.exerciseId);
-            const exerciseResult = yield (0, service_1.getExercises)(params.exerciseId);
-            const res = yield (0, service_1.getSolution)(params.exerciseId);
-            res["correctCount"] = exerciseResult.correctCount;
-            res["questionCount"] = exerciseResult.questionCount;
-            if (exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.userAnswers) {
-                const userAnswers = exerciseResult.userAnswers;
-                ((res === null || res === void 0 ? void 0 : res.solutions) || []).forEach((item) => {
-                    for (const key in userAnswers) {
-                        if (userAnswers[key].questionId == item.id) {
-                            item["userAnswer"] = userAnswers[key].answer;
+            try {
+                yield (0, service_1.submit)(params.category, params.exerciseId);
+                const exerciseResult = yield (0, service_1.getExercises)(params.category, params.exerciseId);
+                const res = yield (0, service_1.getSolution)(params.category, params.exerciseId);
+                res["correctCount"] = exerciseResult.correctCount;
+                res["questionCount"] = exerciseResult.questionCount;
+                if (exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.userAnswers) {
+                    const userAnswers = exerciseResult.userAnswers;
+                    ((res === null || res === void 0 ? void 0 : res.solutions) || []).forEach((item) => {
+                        for (const key in userAnswers) {
+                            if (userAnswers[key].questionId == item.id) {
+                                item["userAnswer"] = userAnswers[key].answer;
+                            }
                         }
-                    }
+                    });
+                }
+                webview_1.webview.postMessage({
+                    command: "solution",
+                    data: res,
                 });
             }
-            webview_1.webview.postMessage({
-                command: "solution",
-                data: res,
-            });
+            catch (error) {
+                webview_1.webview.postMessage({
+                    command: "message",
+                    data: {
+                        message: "需要自行前往粉笔官网开通vip，与本插件无关，由于无VIP，申论后续功能暂无",
+                    },
+                });
+            }
         });
     }
     jump(params) {

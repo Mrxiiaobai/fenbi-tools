@@ -1,5 +1,5 @@
-import { Radio, RadioChangeEvent, Modal, Button, Flex } from "antd";
 import * as React from "react";
+import { Button, Flex } from "antd";
 import * as dayjs from "dayjs";
 
 export const HistoryCard = (props: {
@@ -8,6 +8,9 @@ export const HistoryCard = (props: {
   goExercise: (data: any) => void;
 }) => {
   const { onClick, data, goExercise } = props;
+
+  const _data = data.find((item) => item.status == 0 && item.sheet?.type == 3);
+  console.log("🚀 ~ HistoryCard ~ _data:", _data);
 
   return (
     <div style={{ border: "1px solid #ffffff", borderRadius: 5, padding: 10 }}>
@@ -21,20 +24,20 @@ export const HistoryCard = (props: {
           全部（最近15条）
         </Button>
       </Flex>
-      {data?.[0]?.status == 0 && data?.[0]?.sheet?.type == 3 ? (
+      {_data?.status == 0 && _data?.sheet?.type == 3 ? (
         <div>
-          <p>{data?.[0]?.sheet?.name}</p>
-          {/* <p>{data?.[0]?.sheet?.type == 1 ? "试卷" : "练习"}</p> */}
-          <p>创建时间：{dayjs(data?.[0]?.createTime).format("YYYY-MM-DD")}</p>
+          <p>{_data?.sheet?.name}</p>
+          {/* <p>{_data?.sheet?.type == 1 ? "试卷" : "练习"}</p> */}
+          <p>创建时间：{dayjs(_data?.createTime).format("YYYY-MM-DD")}</p>
           <Button
             type="primary"
             style={{ borderColor: "white" }}
             onClick={() => {
-              if (data?.[0]?.status == 1) return;
+              if (_data?.status == 1) return;
               goExercise(data);
             }}
           >
-            {data?.[0]?.status == 1 ? "已完成" : "继续做题"}
+            {_data?.status == 1 ? "已完成" : "继续做题"}
           </Button>
         </div>
       ) : null}

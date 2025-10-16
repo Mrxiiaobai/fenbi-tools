@@ -13,7 +13,6 @@ interface TQuestionItemProps {
 export const QuestionItem = (props: TQuestionItemProps) => {
   const { data = [], materials = [], onChange, index } = props;
 
-  const { color } = React.useContext(ThemeContext);
   return (
     <div>
       {(materials || []).length > 0 && (
@@ -79,7 +78,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
             </div>
 
             {ele?.solution && (
-              <>
+              <div className="solution-container">
                 <p>
                   <span
                     className={
@@ -97,14 +96,14 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                     正确答案：{radioMap[Number(ele?.correctAnswer?.choice) + 1]}
                   </span>
                 </p>
-                <span style={{ fontWeight: "bold" }}>解析：</span>
+                <div style={{ fontWeight: "bold" }}>解析：</div>
                 <div
                   className="solution"
                   dangerouslySetInnerHTML={{
                     __html: ele.solution,
                   }}
                 ></div>
-              </>
+              </div>
             )}
           </div>
         );

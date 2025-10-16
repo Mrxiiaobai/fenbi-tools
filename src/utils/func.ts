@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { globalState } from "./globalState";
 import { mainConfig } from "../config";
-import { children } from "cheerio/dist/commonjs/api/traversing";
+
 const cheerio = require("cheerio");
 const path = require("path");
 

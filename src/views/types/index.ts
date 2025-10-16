@@ -10,10 +10,10 @@ export type TQuestionItem = {
     options: string[];
     type: 101 | 102 | 210;
   }[];
-  correctAnswer: { choice: string; type: 101 | 102 | 210 } | null;
+  correctAnswer: { choice: string; type: 101 | 102 | 210 | 204 } | null;
   hasVideo: number;
   materialIndexes: number | null;
-  userAnswer: { choice: string; type: number };
+  userAnswer: { choice?: string; type: number; answer?: string };
 };
 
 export type TSolutionItem = TQuestionItem & {

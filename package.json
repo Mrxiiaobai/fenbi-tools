@@ -132,7 +132,8 @@
     "gulp": "^5.0.0",
     "qs": "^6.13.0",
     "react": "^18.2.0",
-    "react-dom": "^18.2.0"
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.9.4"
   },
   "repository": {
     "type": "git",
