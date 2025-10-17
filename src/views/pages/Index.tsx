@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Spin, Menu, Modal, message, Select } from "antd";
+import { Spin, Menu, Modal, message, Select, Button, Flex } from "antd";
 import { TCacheData, TSetting } from "../types";
 import { QuestionCount } from "../components/question-count";
 import { HistoryCard } from "../components/history-card";
@@ -7,6 +7,7 @@ import { useNavigate } from "react-router-dom";
 import { useSetting } from "../components/hooks";
 import { categoryOptions } from "../utils/constant";
 import { getVscodeApi } from "../utils/vscodeApi";
+import { modifyArray } from "../utils/modifyArray";
 
 const vscode = getVscodeApi();
 
@@ -25,14 +26,16 @@ export const Home = () => {
 
   React.useEffect(() => {
     pageInit({ categoryId: setting.categoryId });
-    getHistory({ count: 10, categoryId: 4 });
+    getHistory({ count: 15, categoryId: 4 });
     window.addEventListener("message", (event: any) => {
       const message = event.data;
       setLoading(false);
 
       if (message.command === "setting") setTheme(message.data);
       if (message.command === "init") {
-        setTreeData(message.data);
+        const menu = message.data.menu;
+        const cacheResult = message.data.cacheResult;
+        setTreeData(modifyArray(menu, cacheResult?.keypointIds || []));
       }
       if (message.command === "pageCache") setCacheData(message.data);
       if (message.command === "message") {
@@ -40,6 +43,7 @@ export const Home = () => {
         messageApi.info(message.data.message);
       }
       if (message.command === "history") {
+        console.log("🚀 ~ Home ~ message.data:", message.data);
         setHistoryList(message.data);
       }
     });
@@ -68,11 +72,15 @@ export const Home = () => {
   const menuClick = ({ key }: any) => {
     setLoading(true);
 
-    let exerciseId: number | null = null;
-    if (cacheData?.keypointIds?.includes(Number(key))) {
-      exerciseId = cacheData?.exerciseId;
+    let combineKey: string | null = null;
+    const len = cacheData?.keypointIds?.length || 0;
+    if (cacheData?.keypointIds[len - 1] == key) {
+      combineKey = cacheData?.combineKey || "";
     }
-    goDetail({ id: Number(key), exerciseId: Number(exerciseId) });
+    // if (cacheData?.keypointIds?.includes(Number(key))) {
+    //   exerciseId = cacheData?.exerciseId;
+    // }
+    goDetail({ id: Number(key), combineKey: combineKey || "" });
   };
 
   const onQuestionCountChange = (e: number) => {
@@ -94,11 +102,17 @@ export const Home = () => {
     });
   };
 
-  const goDetail = ({ id, exerciseId }: { id: number; exerciseId: number }) => {
+  const goDetail = ({
+    id,
+    combineKey,
+  }: {
+    id?: number;
+    combineKey?: string;
+  }) => {
     navigate("/detail", {
       state: {
         id,
-        exerciseId,
+        combineKey,
       },
     });
   };
@@ -126,7 +140,7 @@ export const Home = () => {
     pageInit({
       categoryId: e,
     });
-    getHistory({ count: 10, categoryId: 4, category: e });
+    getHistory({ count: 15, categoryId: 4, category: e });
     setSetting((prev: any) => ({ ...prev, categoryId: e }));
   };
 
@@ -134,6 +148,39 @@ export const Home = () => {
     <div>
       <Spin tip="loading..." spinning={loading}>
         <div>
+          <Flex justify="flex-end" align="center">
+            <Button
+              type="link"
+              size="small"
+              style={{ borderColor: "white" }}
+              onClick={() => {
+                vscode.postMessage({
+                  command: "openInBrowser",
+                  postData: {
+                    url: "https://github.com/Mrxiiaobai/fenbi-tools/issues",
+                  },
+                });
+              }}
+            >
+              问题反馈
+            </Button>
+            <Button
+              type="link"
+              size="small"
+              style={{ borderColor: "white" }}
+              onClick={() => {
+                console.log("1111222");
+                vscode.postMessage({
+                  command: "openInBrowser",
+                  postData: {
+                    url: "https://github.com/Mrxiiaobai/fenbi-tools/issues/9",
+                  },
+                });
+              }}
+            >
+              入群交流
+            </Button>
+          </Flex>
           <Select
             options={categoryOptions}
             value={setting.categoryId || "xingce"}
@@ -151,8 +198,8 @@ export const Home = () => {
               data={historyList}
               goExercise={(data) => {
                 goDetail({
-                  id: data?.[0]?.id,
-                  exerciseId: data?.[0]?.id,
+                  // id: data?.[0]?.id,
+                  combineKey: data?.key,
                 });
               }}
             />

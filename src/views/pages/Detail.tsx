@@ -27,7 +27,6 @@ const vscode = getVscodeApi();
 let modalIs = false;
 export const Detail = () => {
   const [modal, contextHolder] = Modal.useModal();
-  const [messageApi, messageHoder] = message.useMessage();
   const [isFirst, setFirst] = React.useState(false);
   const [startTime, setStartTime] = React.useState(0);
   const [lastAnswerRecord, setLastAnswerRecord] =
@@ -44,14 +43,15 @@ export const Detail = () => {
   const [solutionData, setSolutionData] = React.useState<TSolutionData>();
   const [cacheData, setCacheData] = React.useState<TCacheData>();
   const { setting, setSetting } = useSetting();
-  console.log("🚀 ~ Detail ~ setting:", setting);
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { id, exerciseId } = location.state || {};
+  const { id = "" } = location.state || {};
+  const defaultCombineKey = location.state?.combineKey || "";
+  const [combineKey, setCombineKey] = React.useState(defaultCombineKey);
 
   React.useEffect(() => {
-    getQuestion({ category: setting.categoryId, id, exerciseId });
+    getQuestion({ category: setting.categoryId, id, combineKey });
   }, []);
 
   React.useEffect(() => {
@@ -60,11 +60,11 @@ export const Detail = () => {
       setLoading(false);
 
       if (_message.command === "pageCache") setCacheData(_message.data);
-      if (_message.command === "getQuestion") setQuestionData(_message.data);
+      if (_message.command === "getQuestion") {
+        setQuestionData(_message.data);
+        setCombineKey(_message.data.combineKey);
+      }
       if (_message.command === "message") {
-        console.log("🚀 ~ Detail ~ message:", _message);
-        // pageInit();
-        // messageApi.info(_message.data.message);
         if (modalIs) return;
         modal.error({
           title: "提示",
@@ -93,16 +93,16 @@ export const Detail = () => {
   const getQuestion = ({
     category,
     id,
-    exerciseId,
+    combineKey,
   }: {
     category?: string;
-    id: number;
-    exerciseId?: number | null;
+    id?: number;
+    combineKey?: string | null;
   }) => {
     setLoading(true);
     vscode.postMessage({
       command: "getQuestion",
-      postData: { category, id: id, exerciseId },
+      postData: { category, id, combineKey },
     });
   };
 
@@ -111,35 +111,20 @@ export const Detail = () => {
   };
 
   const onRaioChange = (e: any, item: TQuestionItem, index: number) => {
-    const ifDifferent =
-      lastAnswerRecord.lastCount !== null &&
-      index !== lastAnswerRecord.lastCount;
-    const currentLastAnswerRecord: TLastAnswerRecord = {
-      lastQuestionId: item.id,
-      lastCount: index,
-      lastAnswer: e.target.value,
-    };
-    let params = { ...currentLastAnswerRecord };
-    if (ifDifferent)
-      params = { ...currentLastAnswerRecord, ...lastAnswerRecord };
     vscode.postMessage({
       command: "answer",
-      inc: ifDifferent ? true : false,
+      inc: true,
       postData: {
-        // study参数
         ...item,
-        index,
-        // 初始时间
         startTime: startTime,
         // inc 参数
-        exerciseId: questionData?.exerciseId,
+        combineKey: combineKey,
         category: setting.categoryId,
-        ...params,
+        answer: e.target.value,
+        exerciseId: questionData?.exerciseId,
+        // ...params,
       },
     });
-
-    // 每次保存最新纪录
-    setLastAnswerRecord(currentLastAnswerRecord);
   };
 
   const onShenlunChange = (text: string) => {
@@ -148,7 +133,7 @@ export const Detail = () => {
       inc: true,
       postData: {
         startTime: startTime,
-        exerciseId: questionData?.exerciseId,
+        combineKey: combineKey,
         category: setting.categoryId,
         answer: text,
       },
@@ -163,10 +148,11 @@ export const Detail = () => {
         vscode.postMessage({
           command: "submit",
           postData: {
-            ...lastAnswerRecord,
+            // ...lastAnswerRecord,
             // 初始时间
             startTime: startTime,
-            exerciseId: questionData?.exerciseId,
+            // exerciseId: questionData?.exerciseId,
+            combineKey: combineKey,
             category: setting.categoryId,
           },
         });
@@ -207,13 +193,16 @@ export const Detail = () => {
             <Button type="text" onClick={onBack}>
               返回上一页
             </Button>
-            <Button
-              type="primary"
-              style={{ borderColor: "white" }}
-              onClick={onSubmit}
-            >
-              交卷
-            </Button>
+            {page == 1 && (
+              <Button
+                type="primary"
+                style={{ borderColor: "white" }}
+                onClick={onSubmit}
+              >
+                交卷
+              </Button>
+            )}
+
             {page == 2 && <Button onClick={onJump}>跳转粉笔网址</Button>}
           </Space>
 
@@ -251,13 +240,15 @@ export const Detail = () => {
             })}
           </div>
 
-          <Button
-            type="primary"
-            style={{ borderColor: "white" }}
-            onClick={onSubmit}
-          >
-            交卷
-          </Button>
+          {page == 1 && (
+            <Button
+              type="primary"
+              style={{ borderColor: "white" }}
+              onClick={onSubmit}
+            >
+              交卷
+            </Button>
+          )}
         </div>
       </Spin>
 

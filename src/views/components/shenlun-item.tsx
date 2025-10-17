@@ -39,8 +39,8 @@ export const ShenlunItem = (props: TShenlunItemProps) => {
               {(ele.accessories || []).map((access: any, ind: number) => {
                 return (
                   <TextArea
-                    defaultValue={ele.userAnswer.answer}
-                    maxLength={access.wordCount}
+                    defaultValue={ele?.userAnswer?.answer || ""}
+                    maxLength={access?.wordCount || undefined}
                     allowClear
                     placeholder="请输入答案..."
                     showCount

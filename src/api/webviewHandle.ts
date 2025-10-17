@@ -4,11 +4,14 @@ import {
   changeQuestionCount,
   getCache,
   getCategories,
-  getExercises,
+  getCurrent,
+  // getExercises,
   getExercisesId,
+  getExercisesUrl,
   getHistory,
   getQuestion,
   getSolution,
+  getSolutionQuestion,
   incr,
   studyTime,
   submit,
@@ -32,6 +35,10 @@ export default class WebviewHandle {
       if (command === "history") {
         this.getHistory(postData);
       }
+      if (command === "openInBrowser") {
+        console.log("openInBrowser", postData);
+        vscode.env.openExternal(vscode.Uri.parse(postData.url));
+      }
     });
   }
 
@@ -45,7 +52,6 @@ export default class WebviewHandle {
       count: count || 15,
       categoryId: categoryId || undefined,
     });
-    console.log("🚀 ~ WebviewHandle ~ getHistory ~ category:", category);
     webview.postMessage({
       command: "history",
       data: res.datas,
@@ -62,9 +68,15 @@ export default class WebviewHandle {
       command: "setting",
       data: config,
     });
+    // const len = (cacheResult.keypointIds || [])?.length;
+    // const lastKeypointIds = len > 0 ? [cacheResult.keypointIds[len - 1]] : [];
     webview.postMessage({
       command: "init",
-      data: modifyArray(res, cacheResult.keypointIds),
+      // data: modifyArray(res, cacheResult?.keypointIds || []),
+      data: {
+        menu: res,
+        cacheResult: cacheResult || {},
+      },
     });
 
     webview.postMessage({
@@ -75,15 +87,16 @@ export default class WebviewHandle {
 
   async getQuestion({
     category,
+    combineKey,
     id,
-    exerciseId,
   }: {
     category: string;
-    id: number;
-    exerciseId?: number;
+    combineKey?: string;
+    id?: number;
   }) {
-    let postExerciseId = exerciseId;
-    if (!postExerciseId) {
+    let postCombinKey = combineKey || "";
+
+    if (!postCombinKey) {
       const params = {
         keypointId: id,
       } as any;
@@ -91,41 +104,55 @@ export default class WebviewHandle {
         params.count = 1;
       }
       const res = await getExercisesId(category, params);
-      postExerciseId = res.id;
+      postCombinKey = res.key;
     }
-    const exerciseResult = await getExercises(
-      category,
-      postExerciseId as number
-    );
-    const questionResult = await getQuestion(
-      category,
-      postExerciseId as number
-    );
 
-    if (exerciseResult?.userAnswers) {
-      const userAnswers = exerciseResult.userAnswers;
+    const exerciseResult = await getExercisesUrl({
+      category,
+      combineKey: postCombinKey,
+    });
+
+    if (exerciseResult?.code == -1) {
+      webview.postMessage({
+        command: "message",
+        data: { message: exerciseResult.message || "获取试题失败" },
+      });
+      return;
+    }
+
+    const staticUrl = exerciseResult?.data?.staticUrl?.urls?.[0];
+    const questionResult = await getQuestion(category, staticUrl);
+
+    getCurrent();
+
+    if (exerciseResult?.data?.userAnswers) {
+      const userAnswers = exerciseResult?.data?.userAnswers || {};
       (questionResult?.questions || []).forEach((item: any) => {
         for (const key in userAnswers) {
-          if (userAnswers[key]?.questionId == item.id) {
-            item["userAnswer"] = userAnswers[key].answer;
+          if (key == item?.globalId) {
+            item["userAnswer"] = userAnswers?.[key]?.answer;
           }
         }
       });
     }
 
+    questionResult["exerciseId"] = exerciseResult?.data?.ancientExerciseId?.id;
+    questionResult["combinKey"] = postCombinKey;
+
     webview.postMessage({
       command: "getQuestion",
       data: {
-        exerciseId: postExerciseId,
+        combineKey: postCombinKey,
         ...questionResult,
       },
     });
   }
 
-  studyTime(params: { index: number; id: number }) {
+  studyTime(params: { exerciseId: number; id: number }) {
     studyTime({
-      exerciseId: params.index,
-      questionIds: [params.id],
+      exerciseId: params.exerciseId,
+      // questionIds: [params.id],
+      questionId: 0,
       startTime: Date.now(),
       studyTime: 30000, // 30 seconds
       subType: 1,
@@ -136,7 +163,7 @@ export default class WebviewHandle {
   async inc(params: any) {
     let answer = {
       type: 201,
-      choice: String(params.lastAnswer),
+      choice: String(params.answer),
     } as any;
     if (params.category == "shenlun") {
       answer = {
@@ -144,50 +171,55 @@ export default class WebviewHandle {
         answer: params.answer,
       };
     }
-    await incr(params.category, params.exerciseId, {
+    await incr(params.category, params.combineKey, {
       answer: answer,
-      flag: 0,
-      questionId: params.lastQuestionId,
-      questionIndex: params.lastCount,
+      key: params.globalId,
       time: Math.floor((Date.now() - params.startTime) / 1000),
     });
   }
 
-  async submit(params: { category: string; exerciseId: number }) {
-    await this.inc(params);
+  async submit(params: { category: string; combineKey: string }) {
+    // await this.inc(params);
     try {
-      await submit(params.category, params.exerciseId);
-
-      const exerciseResult = await getExercises(
-        params.category,
-        params.exerciseId
-      );
-      const res = await getSolution(params.category, params.exerciseId);
-      res["correctCount"] = exerciseResult.correctCount;
-      res["questionCount"] = exerciseResult.questionCount;
-
-      if (exerciseResult?.userAnswers) {
-        const userAnswers = exerciseResult.userAnswers;
-        (res?.solutions || []).forEach((item: any) => {
-          for (const key in userAnswers) {
-            if (userAnswers[key].questionId == item.id) {
-              item["userAnswer"] = userAnswers[key].answer;
-            }
-          }
+      const submitRes = await submit(params.category, params.combineKey);
+      if (submitRes.msg == "needPayment") {
+        webview.postMessage({
+          command: "message",
+          data: {
+            message:
+              "需要自行前往粉笔官网开通vip，与本插件无关，由于无VIP，申论后续功能暂无",
+          },
         });
+        return;
       }
+
+      const res = await getSolution(params.category, params.combineKey);
+      const solutionRes = await getSolutionQuestion(
+        res?.data?.staticUrl?.urls?.[0],
+        params.category
+      );
+
+      (solutionRes?.solutions || []).forEach((item: any) => {
+        const userAnswers = res?.data?.userAnswers;
+        for (const key in userAnswers) {
+          if (key == item.globalId) {
+            item["userAnswer"] = userAnswers[key].answer;
+          }
+        }
+      });
+
+      solutionRes["correctCount"] =
+        (solutionRes?.solutions || []).filter((item: any) => {
+          return item?.userAnswer?.choice == item?.correctAnswer?.choice;
+        })?.length || 0;
+      solutionRes["questionCount"] = (solutionRes?.solutions || []).length;
+
       webview.postMessage({
         command: "solution",
-        data: res,
+        data: solutionRes,
       });
     } catch (error) {
-      webview.postMessage({
-        command: "message",
-        data: {
-          message:
-            "需要自行前往粉笔官网开通vip，与本插件无关，由于无VIP，申论后续功能暂无",
-        },
-      });
+      console.log("🚀 ~ WebviewHandle ~ submit ~ error:", error);
     }
   }
 
@@ -200,7 +232,6 @@ export default class WebviewHandle {
 
   async changeQuestionCount(params: { questionCount: number }) {
     const res = await changeQuestionCount(params);
-    console.log("🚀 ~ WebviewHandle ~ changeQuestionCount ~ res:", res);
 
     webview.postMessage({
       command: "message",

@@ -34,7 +34,7 @@ export const HistoryCard = (props: {
             style={{ borderColor: "white" }}
             onClick={() => {
               if (_data?.status == 1) return;
-              goExercise(data);
+              goExercise(_data);
             }}
           >
             {_data?.status == 1 ? "已完成" : "继续做题"}

@@ -5,8 +5,6 @@ import { useLocation, useNavigate } from "react-router-dom";
 import { useSetting } from "../components/hooks";
 import { getVscodeApi } from "../utils/vscodeApi";
 
-declare const acquireVsCodeApi: any;
-
 const vscode = getVscodeApi();
 
 export const History = () => {
@@ -46,11 +44,11 @@ export const History = () => {
     });
   }, []);
 
-  const goDetail = ({ id, exerciseId }: { id: number; exerciseId: number }) => {
+  const goDetail = ({ id, combinKey }: { id?: number; combinKey?: string }) => {
     navigate("/detail", {
       state: {
         id,
-        exerciseId,
+        combinKey,
       },
     });
   };
@@ -73,8 +71,8 @@ export const History = () => {
                 data={item}
                 goExercise={(data) => {
                   goDetail({
-                    id: data?.id,
-                    exerciseId: data?.id,
+                    combinKey: data?.key,
+                    // exerciseId: data?.id,
                   });
                 }}
               />

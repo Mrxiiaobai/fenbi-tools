@@ -3,6 +3,7 @@ import { TMaterials, TQuestionItem, TSolutionItem } from "../types";
 import { Radio, RadioChangeEvent } from "antd";
 import { radioMap } from "../utils/constant";
 import { ThemeContext } from "../context/themeContext";
+import { setImg } from "../utils/setImg";
 
 interface TQuestionItemProps {
   data: TSolutionItem[];
@@ -18,7 +19,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
       {(materials || []).length > 0 && (
         <div
           dangerouslySetInnerHTML={{
-            __html: materials?.[index].content,
+            __html: setImg(materials?.[index].content),
           }}
         ></div>
       )}
@@ -28,7 +29,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
             <span>{index + 1}、</span>
             <span
               dangerouslySetInnerHTML={{
-                __html: ele.content,
+                __html: setImg(ele.content),
               }}
             ></span>
 
@@ -47,17 +48,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                   >
                     {(access?.options || []).map(
                       (option: any, index: number) => {
-                        const newOption = option.replace(
-                          /(<img[^>]+src=\")([^"]+)/g,
-                          function (match: any, p1: string, p2: string) {
-                            // 如果 src 已经包含 https:，则不修改
-                            if (p2.startsWith("https:")) {
-                              return p1 + p2;
-                            }
-                            // 如果没有 https:，则添加
-                            return p1 + "https:" + p2;
-                          }
-                        );
+                        const newOption = setImg(option);
                         return (
                           <Radio value={index}>
                             <div>
@@ -96,11 +87,13 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                     正确答案：{radioMap[Number(ele?.correctAnswer?.choice) + 1]}
                   </span>
                 </p>
-                <div style={{ fontWeight: "bold" }}>解析：</div>
+                <div className="green" style={{ fontWeight: "bold" }}>
+                  解析：
+                </div>
                 <div
                   className="solution"
                   dangerouslySetInnerHTML={{
-                    __html: ele.solution,
+                    __html: setImg(ele.solution),
                   }}
                 ></div>
               </div>

@@ -10,7 +10,6 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const vscode = require("vscode");
-const func_1 = require("../utils/func");
 const service_1 = require("../utils/service");
 const webview_1 = require("../utils/webview");
 class WebviewHandle {
@@ -35,6 +34,10 @@ class WebviewHandle {
             if (command === "history") {
                 this.getHistory(postData);
             }
+            if (command === "openInBrowser") {
+                console.log("openInBrowser", postData);
+                vscode.env.openExternal(vscode.Uri.parse(postData.url));
+            }
         });
     }
     getHistory({ category = "xingce", count, categoryId, } = {}) {
@@ -44,7 +47,6 @@ class WebviewHandle {
                 count: count || 15,
                 categoryId: categoryId || undefined,
             });
-            console.log("🚀 ~ WebviewHandle ~ getHistory ~ category:", category);
             webview_1.webview.postMessage({
                 command: "history",
                 data: res.datas,
@@ -60,9 +62,15 @@ class WebviewHandle {
                 command: "setting",
                 data: config,
             });
+            // const len = (cacheResult.keypointIds || [])?.length;
+            // const lastKeypointIds = len > 0 ? [cacheResult.keypointIds[len - 1]] : [];
             webview_1.webview.postMessage({
                 command: "init",
-                data: (0, func_1.modifyArray)(res, cacheResult.keypointIds),
+                // data: modifyArray(res, cacheResult?.keypointIds || []),
+                data: {
+                    menu: res,
+                    cacheResult: cacheResult || {},
+                },
             });
             webview_1.webview.postMessage({
                 command: "pageCache",
@@ -70,10 +78,11 @@ class WebviewHandle {
             });
         });
     }
-    getQuestion({ category, id, exerciseId, }) {
+    getQuestion({ category, combineKey, id, }) {
+        var _a, _b, _c, _d, _e, _f, _g;
         return __awaiter(this, void 0, void 0, function* () {
-            let postExerciseId = exerciseId;
-            if (!postExerciseId) {
+            let postCombinKey = combineKey || "";
+            if (!postCombinKey) {
                 const params = {
                     keypointId: id,
                 };
@@ -81,31 +90,46 @@ class WebviewHandle {
                     params.count = 1;
                 }
                 const res = yield (0, service_1.getExercisesId)(category, params);
-                postExerciseId = res.id;
+                postCombinKey = res.key;
             }
-            const exerciseResult = yield (0, service_1.getExercises)(category, postExerciseId);
-            const questionResult = yield (0, service_1.getQuestion)(category, postExerciseId);
-            if (exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.userAnswers) {
-                const userAnswers = exerciseResult.userAnswers;
+            const exerciseResult = yield (0, service_1.getExercisesUrl)({
+                category,
+                combineKey: postCombinKey,
+            });
+            if ((exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.code) == -1) {
+                webview_1.webview.postMessage({
+                    command: "message",
+                    data: { message: exerciseResult.message || "获取试题失败" },
+                });
+                return;
+            }
+            const staticUrl = (_c = (_b = (_a = exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.data) === null || _a === void 0 ? void 0 : _a.staticUrl) === null || _b === void 0 ? void 0 : _b.urls) === null || _c === void 0 ? void 0 : _c[0];
+            const questionResult = yield (0, service_1.getQuestion)(category, staticUrl);
+            (0, service_1.getCurrent)();
+            if ((_d = exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.data) === null || _d === void 0 ? void 0 : _d.userAnswers) {
+                const userAnswers = ((_e = exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.data) === null || _e === void 0 ? void 0 : _e.userAnswers) || {};
                 ((questionResult === null || questionResult === void 0 ? void 0 : questionResult.questions) || []).forEach((item) => {
                     var _a;
                     for (const key in userAnswers) {
-                        if (((_a = userAnswers[key]) === null || _a === void 0 ? void 0 : _a.questionId) == item.id) {
-                            item["userAnswer"] = userAnswers[key].answer;
+                        if (key == (item === null || item === void 0 ? void 0 : item.globalId)) {
+                            item["userAnswer"] = (_a = userAnswers === null || userAnswers === void 0 ? void 0 : userAnswers[key]) === null || _a === void 0 ? void 0 : _a.answer;
                         }
                     }
                 });
             }
+            questionResult["exerciseId"] = (_g = (_f = exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.data) === null || _f === void 0 ? void 0 : _f.ancientExerciseId) === null || _g === void 0 ? void 0 : _g.id;
+            questionResult["combinKey"] = postCombinKey;
             webview_1.webview.postMessage({
                 command: "getQuestion",
-                data: Object.assign({ exerciseId: postExerciseId }, questionResult),
+                data: Object.assign({ combineKey: postCombinKey }, questionResult),
             });
         });
     }
     studyTime(params) {
         (0, service_1.studyTime)({
-            exerciseId: params.index,
-            questionIds: [params.id],
+            exerciseId: params.exerciseId,
+            // questionIds: [params.id],
+            questionId: 0,
             startTime: Date.now(),
             studyTime: 30000,
             subType: 1,
@@ -116,7 +140,7 @@ class WebviewHandle {
         return __awaiter(this, void 0, void 0, function* () {
             let answer = {
                 type: 201,
-                choice: String(params.lastAnswer),
+                choice: String(params.answer),
             };
             if (params.category == "shenlun") {
                 answer = {
@@ -124,46 +148,52 @@ class WebviewHandle {
                     answer: params.answer,
                 };
             }
-            yield (0, service_1.incr)(params.category, params.exerciseId, {
+            yield (0, service_1.incr)(params.category, params.combineKey, {
                 answer: answer,
-                flag: 0,
-                questionId: params.lastQuestionId,
-                questionIndex: params.lastCount,
+                key: params.globalId,
                 time: Math.floor((Date.now() - params.startTime) / 1000),
             });
         });
     }
     submit(params) {
+        var _a, _b, _c, _d;
         return __awaiter(this, void 0, void 0, function* () {
-            yield this.inc(params);
+            // await this.inc(params);
             try {
-                yield (0, service_1.submit)(params.category, params.exerciseId);
-                const exerciseResult = yield (0, service_1.getExercises)(params.category, params.exerciseId);
-                const res = yield (0, service_1.getSolution)(params.category, params.exerciseId);
-                res["correctCount"] = exerciseResult.correctCount;
-                res["questionCount"] = exerciseResult.questionCount;
-                if (exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.userAnswers) {
-                    const userAnswers = exerciseResult.userAnswers;
-                    ((res === null || res === void 0 ? void 0 : res.solutions) || []).forEach((item) => {
-                        for (const key in userAnswers) {
-                            if (userAnswers[key].questionId == item.id) {
-                                item["userAnswer"] = userAnswers[key].answer;
-                            }
-                        }
+                const submitRes = yield (0, service_1.submit)(params.category, params.combineKey);
+                if (submitRes.msg == "needPayment") {
+                    webview_1.webview.postMessage({
+                        command: "message",
+                        data: {
+                            message: "需要自行前往粉笔官网开通vip，与本插件无关，由于无VIP，申论后续功能暂无",
+                        },
                     });
+                    return;
                 }
+                const res = yield (0, service_1.getSolution)(params.category, params.combineKey);
+                const solutionRes = yield (0, service_1.getSolutionQuestion)((_c = (_b = (_a = res === null || res === void 0 ? void 0 : res.data) === null || _a === void 0 ? void 0 : _a.staticUrl) === null || _b === void 0 ? void 0 : _b.urls) === null || _c === void 0 ? void 0 : _c[0], params.category);
+                ((solutionRes === null || solutionRes === void 0 ? void 0 : solutionRes.solutions) || []).forEach((item) => {
+                    var _a;
+                    const userAnswers = (_a = res === null || res === void 0 ? void 0 : res.data) === null || _a === void 0 ? void 0 : _a.userAnswers;
+                    for (const key in userAnswers) {
+                        if (key == item.globalId) {
+                            item["userAnswer"] = userAnswers[key].answer;
+                        }
+                    }
+                });
+                solutionRes["correctCount"] =
+                    ((_d = ((solutionRes === null || solutionRes === void 0 ? void 0 : solutionRes.solutions) || []).filter((item) => {
+                        var _a, _b;
+                        return ((_a = item === null || item === void 0 ? void 0 : item.userAnswer) === null || _a === void 0 ? void 0 : _a.choice) == ((_b = item === null || item === void 0 ? void 0 : item.correctAnswer) === null || _b === void 0 ? void 0 : _b.choice);
+                    })) === null || _d === void 0 ? void 0 : _d.length) || 0;
+                solutionRes["questionCount"] = ((solutionRes === null || solutionRes === void 0 ? void 0 : solutionRes.solutions) || []).length;
                 webview_1.webview.postMessage({
                     command: "solution",
-                    data: res,
+                    data: solutionRes,
                 });
             }
             catch (error) {
-                webview_1.webview.postMessage({
-                    command: "message",
-                    data: {
-                        message: "需要自行前往粉笔官网开通vip，与本插件无关，由于无VIP，申论后续功能暂无",
-                    },
-                });
+                console.log("🚀 ~ WebviewHandle ~ submit ~ error:", error);
             }
         });
     }
@@ -174,7 +204,6 @@ class WebviewHandle {
     changeQuestionCount(params) {
         return __awaiter(this, void 0, void 0, function* () {
             const res = yield (0, service_1.changeQuestionCount)(params);
-            console.log("🚀 ~ WebviewHandle ~ changeQuestionCount ~ res:", res);
             webview_1.webview.postMessage({
                 command: "message",
                 data: { message: "修改成功" },

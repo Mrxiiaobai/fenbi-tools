@@ -2,7 +2,9 @@
 
 # 作用
 
-该插件可以用于刷粉笔题
+刷粉笔题！ 行测&申论刷题！
+可以查看刷题历史 & 设置刷题数量
+持续更新中&升级接口
 
 # 描述
 
@@ -12,21 +14,29 @@
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/fb78a82b56e646978b0fd871face5b33.png#pic_center)
 
-# 问题&需求
+# 问题&需求&交流
 
-如有需求或者问题，可提 issue
+如有需求或者问题，可提 issue，可在 issue 中留下联系方式，人多的话，可以建个群！
 
 ```javascript
-    https://github.com/Mrxiiaobai/fenbi-tools
+    https://github.com/Mrxiiaobai/fenbi-tools/issues
 ```
 
 # 打赏途径
 
 仓库地址
+
+```javascript
+    https://github.com/Mrxiiaobai/fenbi-tools
+```
+
 有钱的赏个钱场，没钱的赏个人场，感谢各位领导！
 
 # 使用问题
 
-关于 cookie 设置无效的问题。这里需要登录后，点击题库，出现专项练习，这里可以使用示例接口以及 cookie
+1、关于 cookie 设置无效的问题。这里需要登录后，点击题库，
+选择公务员行测，然后选择一个区域，例如：（江苏省考（A 类）） （ps：暂时只支持公务员行测&公务员申论）
+<font color="#FF0000">注意：你选择了江苏省考 A 类后，获取的 cookie 填入，那么题目就是江苏省考的，如果需要变更其他地区，只需要在网页端切换一下区域（山东省考 A 类）即可，这里由于省市区太多，暂未加入切换，想必各位领导应该只会做一个省份的题</font>
+这里可以使用示例接口以及 cookie
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/99beb807d3f145f7ad90bd26515ac365.png)
