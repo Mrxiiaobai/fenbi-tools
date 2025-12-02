@@ -190,3 +190,45 @@ export const modifyArray = (arr: any[], cacheKey: number[], level = 1) => {
     return newItem;
   });
 };
+
+/**
+ * 根据 cards 的顺序，生成一个 materialsForRender 数组
+ * 让 materialsForRender[index] === 当前题目的展示图片（仅首次出现时才有）
+ */
+export const buildMaterialsForQuestions = (cards: any, materials: any[]) => {
+  // 方便快速查询 globalId → content
+  const materialContentMap = new Map(
+    materials.map((m) => [m.globalId, m.content])
+  );
+
+  const usedMaterialKeys = new Set(); // 已经展示过的素材
+  const materialsForRender: any[] = []; // 最终用于页面渲染的 materials[index]
+
+  const questions = cards?.children[0].children; // 题目顺序数组
+
+  questions.forEach((q: { materialKeys: any }, index: number) => {
+    const keys = q.materialKeys;
+
+    if (!keys || keys.length === 0) {
+      materialsForRender[index] = null;
+      return;
+    }
+
+    const key = keys[0];
+
+    // 第一次出现 → 允许展示图片
+    if (!usedMaterialKeys.has(key)) {
+      usedMaterialKeys.add(key);
+
+      materialsForRender[index] = {
+        key,
+        content: materialContentMap.get(key) || null,
+      };
+    } else {
+      // 后续重复出现 → 不展示图
+      materialsForRender[index] = null;
+    }
+  });
+
+  return materialsForRender;
+};

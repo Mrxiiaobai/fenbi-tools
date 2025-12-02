@@ -38808,6 +38808,32 @@ var templateHtml = (scriptUri) => {
     </body>
   </html>`;
 };
+var buildMaterialsForQuestions = (cards, materials) => {
+  const materialContentMap = new Map(
+    materials.map((m) => [m.globalId, m.content])
+  );
+  const usedMaterialKeys = /* @__PURE__ */ new Set();
+  const materialsForRender = [];
+  const questions = cards?.children[0].children;
+  questions.forEach((q, index) => {
+    const keys = q.materialKeys;
+    if (!keys || keys.length === 0) {
+      materialsForRender[index] = null;
+      return;
+    }
+    const key = keys[0];
+    if (!usedMaterialKeys.has(key)) {
+      usedMaterialKeys.add(key);
+      materialsForRender[index] = {
+        key,
+        content: materialContentMap.get(key) || null
+      };
+    } else {
+      materialsForRender[index] = null;
+    }
+  });
+  return materialsForRender;
+};
 
 // src/utils/webview.ts
 var path2 = require("path");
@@ -38951,6 +38977,21 @@ var getExercisesId = async (category = "xingce", params) => {
   );
   return res;
 };
+var getQuickExercisesId = async (category = "xingce") => {
+  const url = `https://tiku.fenbi.com/api/${category || "xingce"}/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+  const res = await request_default(
+    "FORM",
+    url,
+    {
+      type: 3,
+      exerciseTimeMode: 2
+    },
+    {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8"
+    }
+  );
+  return res;
+};
 var getExercisesUrl = async ({
   category = "xingce",
   combineKey
@@ -38959,9 +39000,10 @@ var getExercisesUrl = async ({
   const res = await request_default("GET", url);
   return res;
 };
-var getQuestion = async (category, url) => {
+var getQuestion = async (category, url, type = 1) => {
   const _url = `${url}&routecs=${category}&type=1&kav=121&av=121&hav=121&app=web`;
   const res = await request_default("GET", _url);
+  res["materials"] = buildMaterialsForQuestions(res?.card, res?.materials);
   return res;
 };
 var getCategories = async (category) => {
@@ -39058,6 +39100,8 @@ var WebviewHandle = class {
         this.pageInit(postData);
       if (command === "getQuestion")
         this.getQuestion(postData);
+      if (command === "getQuickQuestion")
+        this.getQuickQuestion(postData);
       if (command === "submit")
         this.submit(postData);
       if (command === "jumpFenbi")
@@ -39095,6 +39139,7 @@ var WebviewHandle = class {
   }
   async pageInit(postData) {
     const cacheResult = await getCache(postData?.categoryId || "xingce");
+    console.log("\u{1F680} ~ WebviewHandle ~ pageInit ~ cacheResult:", cacheResult);
     const res = await getCategories(postData?.categoryId || "xingce");
     const config = vscode4.workspace.getConfiguration("fenbiTools");
     webview.postMessage({
@@ -39128,6 +39173,49 @@ var WebviewHandle = class {
         params.count = 1;
       }
       const res = await getExercisesId(category, params);
+      postCombinKey = res.key;
+    }
+    const exerciseResult = await getExercisesUrl({
+      category,
+      combineKey: postCombinKey
+    });
+    if (exerciseResult?.code == -1) {
+      webview.postMessage({
+        command: "message",
+        data: { message: exerciseResult.message || "\u83B7\u53D6\u8BD5\u9898\u5931\u8D25" }
+      });
+      return;
+    }
+    const staticUrl = exerciseResult?.data?.staticUrl?.urls?.[0];
+    const questionResult = await getQuestion(category, staticUrl);
+    getCurrent();
+    if (exerciseResult?.data?.userAnswers) {
+      const userAnswers = exerciseResult?.data?.userAnswers || {};
+      (questionResult?.questions || []).forEach((item) => {
+        for (const key in userAnswers) {
+          if (key == item?.globalId) {
+            item["userAnswer"] = userAnswers?.[key]?.answer;
+          }
+        }
+      });
+    }
+    questionResult["exerciseId"] = exerciseResult?.data?.ancientExerciseId?.id;
+    questionResult["combinKey"] = postCombinKey;
+    webview.postMessage({
+      command: "getQuestion",
+      data: {
+        combineKey: postCombinKey,
+        ...questionResult
+      }
+    });
+  }
+  async getQuickQuestion({
+    category,
+    combineKey
+  }) {
+    let postCombinKey = combineKey || "";
+    if (!postCombinKey) {
+      const res = await getQuickExercisesId(category);
       postCombinKey = res.key;
     }
     const exerciseResult = await getExercisesUrl({

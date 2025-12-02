@@ -1,5 +1,5 @@
 import * as vscode from "vscode";
-import { modifyArray } from "../utils/func";
+import { buildMaterialsForQuestions, modifyArray } from "../utils/func";
 import {
   changeQuestionCount,
   getCache,
@@ -10,6 +10,7 @@ import {
   getExercisesUrl,
   getHistory,
   getQuestion,
+  getQuickExercisesId,
   getSolution,
   getSolutionQuestion,
   incr,
@@ -25,6 +26,7 @@ export default class WebviewHandle {
 
       if (command === "pageInit") this.pageInit(postData);
       if (command === "getQuestion") this.getQuestion(postData);
+      if (command === "getQuickQuestion") this.getQuickQuestion(postData);
       if (command === "submit") this.submit(postData);
       if (command === "jumpFenbi") this.jump(postData);
       if (command === "changeQuestionCount") this.changeQuestionCount(postData);
@@ -60,6 +62,7 @@ export default class WebviewHandle {
 
   async pageInit(postData: any) {
     const cacheResult = await getCache(postData?.categoryId || "xingce");
+    console.log("🚀 ~ WebviewHandle ~ pageInit ~ cacheResult:", cacheResult);
     const res = await getCategories(postData?.categoryId || "xingce");
 
     const config = vscode.workspace.getConfiguration("fenbiTools");
@@ -121,6 +124,62 @@ export default class WebviewHandle {
     }
 
     const staticUrl = exerciseResult?.data?.staticUrl?.urls?.[0];
+    const questionResult = await getQuestion(category, staticUrl);
+
+    getCurrent();
+
+    if (exerciseResult?.data?.userAnswers) {
+      const userAnswers = exerciseResult?.data?.userAnswers || {};
+      (questionResult?.questions || []).forEach((item: any) => {
+        for (const key in userAnswers) {
+          if (key == item?.globalId) {
+            item["userAnswer"] = userAnswers?.[key]?.answer;
+          }
+        }
+      });
+    }
+
+    questionResult["exerciseId"] = exerciseResult?.data?.ancientExerciseId?.id;
+    questionResult["combinKey"] = postCombinKey;
+
+    webview.postMessage({
+      command: "getQuestion",
+      data: {
+        combineKey: postCombinKey,
+        ...questionResult,
+      },
+    });
+  }
+
+  async getQuickQuestion({
+    category,
+    combineKey,
+  }: {
+    category: string;
+    combineKey?: string;
+  }) {
+    let postCombinKey = combineKey || "";
+
+    if (!postCombinKey) {
+      const res = await getQuickExercisesId(category);
+      postCombinKey = res.key;
+    }
+
+    const exerciseResult = await getExercisesUrl({
+      category,
+      combineKey: postCombinKey,
+    });
+
+    if (exerciseResult?.code == -1) {
+      webview.postMessage({
+        command: "message",
+        data: { message: exerciseResult.message || "获取试题失败" },
+      });
+      return;
+    }
+
+    const staticUrl = exerciseResult?.data?.staticUrl?.urls?.[0];
+
     const questionResult = await getQuestion(category, staticUrl);
 
     getCurrent();

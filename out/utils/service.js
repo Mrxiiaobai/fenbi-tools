@@ -9,8 +9,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMark = exports.getCurrent = exports.getUserQuestionInfo = exports.changeQuestionCount = exports.getUserInfo = exports.submit = exports.incr = exports.getHistory = exports.studyTime = exports.getCache = exports.getSolutionQuestion = exports.getSolution = exports.getCategories = exports.getQuestion = exports.getExercisesUrl = exports.getExercisesId = void 0;
+exports.getMark = exports.getCurrent = exports.getUserQuestionInfo = exports.changeQuestionCount = exports.getUserInfo = exports.submit = exports.incr = exports.getHistory = exports.studyTime = exports.getCache = exports.getSolutionQuestion = exports.getSolution = exports.getCategories = exports.getQuestion = exports.getExercisesUrl = exports.getQuickExercisesId = exports.getExercisesId = void 0;
 // import * as vscode from "vscode";
+const func_1 = require("./func");
 const request_1 = require("./request");
 const getExercisesId = (category = "xingce", params) => __awaiter(void 0, void 0, void 0, function* () {
     const userInfo = yield (0, exports.getUserQuestionInfo)();
@@ -30,15 +31,27 @@ const getExercisesId = (category = "xingce", params) => __awaiter(void 0, void 0
     return res;
 });
 exports.getExercisesId = getExercisesId;
+const getQuickExercisesId = (category = "xingce") => __awaiter(void 0, void 0, void 0, function* () {
+    const url = `https://tiku.fenbi.com/api/${category || "xingce"}/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+    const res = yield (0, request_1.default)("FORM", url, {
+        type: 3,
+        exerciseTimeMode: 2,
+    }, {
+        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    });
+    return res;
+});
+exports.getQuickExercisesId = getQuickExercisesId;
 const getExercisesUrl = ({ category = "xingce", combineKey, }) => __awaiter(void 0, void 0, void 0, function* () {
     const url = `https://tiku.fenbi.com/combine/exercise/getExercise?format=html&key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
     const res = yield (0, request_1.default)("GET", url);
     return res;
 });
 exports.getExercisesUrl = getExercisesUrl;
-const getQuestion = (category, url) => __awaiter(void 0, void 0, void 0, function* () {
+const getQuestion = (category, url, type = 1) => __awaiter(void 0, void 0, void 0, function* () {
     const _url = `${url}&routecs=${category}&type=1&kav=121&av=121&hav=121&app=web`;
     const res = yield (0, request_1.default)("GET", _url);
+    res["materials"] = (0, func_1.buildMaterialsForQuestions)(res === null || res === void 0 ? void 0 : res.card, res === null || res === void 0 ? void 0 : res.materials);
     return res;
 });
 exports.getQuestion = getQuestion;

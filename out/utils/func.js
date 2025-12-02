@@ -1,6 +1,6 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.modifyArray = exports.getScriptUri = exports.templateHtml = exports.getScriptPath = exports.analyze = exports.runInterval = exports.interval = void 0;
+exports.buildMaterialsForQuestions = exports.modifyArray = exports.getScriptUri = exports.templateHtml = exports.getScriptPath = exports.analyze = exports.runInterval = exports.interval = void 0;
 const vscode = require("vscode");
 const config_1 = require("../config");
 const cheerio = require("cheerio");
@@ -143,4 +143,37 @@ const modifyArray = (arr, cacheKey, level = 1) => {
     });
 };
 exports.modifyArray = modifyArray;
+/**
+ * 根据 cards 的顺序，生成一个 materialsForRender 数组
+ * 让 materialsForRender[index] === 当前题目的展示图片（仅首次出现时才有）
+ */
+const buildMaterialsForQuestions = (cards, materials) => {
+    // 方便快速查询 globalId → content
+    const materialContentMap = new Map(materials.map((m) => [m.globalId, m.content]));
+    const usedMaterialKeys = new Set(); // 已经展示过的素材
+    const materialsForRender = []; // 最终用于页面渲染的 materials[index]
+    const questions = cards === null || cards === void 0 ? void 0 : cards.children[0].children; // 题目顺序数组
+    questions.forEach((q, index) => {
+        const keys = q.materialKeys;
+        if (!keys || keys.length === 0) {
+            materialsForRender[index] = null;
+            return;
+        }
+        const key = keys[0];
+        // 第一次出现 → 允许展示图片
+        if (!usedMaterialKeys.has(key)) {
+            usedMaterialKeys.add(key);
+            materialsForRender[index] = {
+                key,
+                content: materialContentMap.get(key) || null,
+            };
+        }
+        else {
+            // 后续重复出现 → 不展示图
+            materialsForRender[index] = null;
+        }
+    });
+    return materialsForRender;
+};
+exports.buildMaterialsForQuestions = buildMaterialsForQuestions;
 //# sourceMappingURL=func.js.map

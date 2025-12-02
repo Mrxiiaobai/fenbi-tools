@@ -1,4 +1,5 @@
 // import * as vscode from "vscode";
+import { buildMaterialsForQuestions } from "./func";
 import ajax from "./request";
 
 export const getExercisesId = async (
@@ -35,6 +36,26 @@ export const getExercisesId = async (
   return res;
 };
 
+export const getQuickExercisesId = async (category: string = "xingce") => {
+  const url = `https://tiku.fenbi.com/api/${
+    category || "xingce"
+  }/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+
+  const res = await ajax(
+    "FORM",
+    url,
+    {
+      type: 3,
+      exerciseTimeMode: 2,
+    },
+    {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    }
+  );
+
+  return res;
+};
+
 export const getExercisesUrl = async ({
   category = "xingce",
   combineKey,
@@ -47,9 +68,14 @@ export const getExercisesUrl = async ({
   return res;
 };
 
-export const getQuestion = async (category: string, url: string) => {
+export const getQuestion = async (
+  category: string,
+  url: string,
+  type: number = 1
+) => {
   const _url = `${url}&routecs=${category}&type=1&kav=121&av=121&hav=121&app=web`;
   const res = await ajax("GET", _url);
+  res["materials"] = buildMaterialsForQuestions(res?.card, res?.materials);
   return res;
 };
 

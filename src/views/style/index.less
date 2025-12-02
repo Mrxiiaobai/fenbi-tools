@@ -1,29 +1,37 @@
-.ant-menu-submenu {
-  padding-left: 0;
+.ant-tree-treenode {
+  width: 100%;
+  flex: 1;
 
-  * {
-    padding-left: 0 !important;
+  &-motion {
+    width: 100%;
   }
 
-  .ant-menu-sub {
-    padding-left: 12px !important;
+  &-appear {
+    width: 100%;
   }
 
-  .ant-menu-submenu-title {
-    padding-left: 12px !important;
-    height: 30px !important;
-    line-height: 30px !important;
+  &-active {
+    width: 100%;
   }
 
-  .ant-menu-item {
-    padding-left: 12px !important;
-    height: 30px !important;
-    line-height: 30px !important;
+  .ant-tree-node-content-wrapper,
+  .ant-tree-node-content-wrapper-motion {
+    flex: 1;
+  }
+  .ant-tree-node-content-wrapper-normal {
+    flex: 1;
+  }
+  .ant-tree-node-content-wrapper-close {
+    flex: 1;
+  }
+  .ant-tree-node-content-wrapper-open {
+    flex: 1;
   }
 }
 
 .menu-container {
-  width: 300px;
+  max-width: 300px;
+  min-width: 256px;
   height: 50%;
   overflow-y: scroll;
 

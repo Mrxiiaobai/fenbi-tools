@@ -20,6 +20,8 @@ class WebviewHandle {
                 this.pageInit(postData);
             if (command === "getQuestion")
                 this.getQuestion(postData);
+            if (command === "getQuickQuestion")
+                this.getQuickQuestion(postData);
             if (command === "submit")
                 this.submit(postData);
             if (command === "jumpFenbi")
@@ -56,6 +58,7 @@ class WebviewHandle {
     pageInit(postData) {
         return __awaiter(this, void 0, void 0, function* () {
             const cacheResult = yield (0, service_1.getCache)((postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce");
+            console.log("🚀 ~ WebviewHandle ~ pageInit ~ cacheResult:", cacheResult);
             const res = yield (0, service_1.getCategories)((postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce");
             const config = vscode.workspace.getConfiguration("fenbiTools");
             webview_1.webview.postMessage({
@@ -90,6 +93,47 @@ class WebviewHandle {
                     params.count = 1;
                 }
                 const res = yield (0, service_1.getExercisesId)(category, params);
+                postCombinKey = res.key;
+            }
+            const exerciseResult = yield (0, service_1.getExercisesUrl)({
+                category,
+                combineKey: postCombinKey,
+            });
+            if ((exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.code) == -1) {
+                webview_1.webview.postMessage({
+                    command: "message",
+                    data: { message: exerciseResult.message || "获取试题失败" },
+                });
+                return;
+            }
+            const staticUrl = (_c = (_b = (_a = exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.data) === null || _a === void 0 ? void 0 : _a.staticUrl) === null || _b === void 0 ? void 0 : _b.urls) === null || _c === void 0 ? void 0 : _c[0];
+            const questionResult = yield (0, service_1.getQuestion)(category, staticUrl);
+            (0, service_1.getCurrent)();
+            if ((_d = exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.data) === null || _d === void 0 ? void 0 : _d.userAnswers) {
+                const userAnswers = ((_e = exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.data) === null || _e === void 0 ? void 0 : _e.userAnswers) || {};
+                ((questionResult === null || questionResult === void 0 ? void 0 : questionResult.questions) || []).forEach((item) => {
+                    var _a;
+                    for (const key in userAnswers) {
+                        if (key == (item === null || item === void 0 ? void 0 : item.globalId)) {
+                            item["userAnswer"] = (_a = userAnswers === null || userAnswers === void 0 ? void 0 : userAnswers[key]) === null || _a === void 0 ? void 0 : _a.answer;
+                        }
+                    }
+                });
+            }
+            questionResult["exerciseId"] = (_g = (_f = exerciseResult === null || exerciseResult === void 0 ? void 0 : exerciseResult.data) === null || _f === void 0 ? void 0 : _f.ancientExerciseId) === null || _g === void 0 ? void 0 : _g.id;
+            questionResult["combinKey"] = postCombinKey;
+            webview_1.webview.postMessage({
+                command: "getQuestion",
+                data: Object.assign({ combineKey: postCombinKey }, questionResult),
+            });
+        });
+    }
+    getQuickQuestion({ category, combineKey, }) {
+        var _a, _b, _c, _d, _e, _f, _g;
+        return __awaiter(this, void 0, void 0, function* () {
+            let postCombinKey = combineKey || "";
+            if (!postCombinKey) {
+                const res = yield (0, service_1.getQuickExercisesId)(category);
                 postCombinKey = res.key;
             }
             const exerciseResult = yield (0, service_1.getExercisesUrl)({

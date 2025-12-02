@@ -10,7 +10,6 @@ export const HistoryCard = (props: {
   const { onClick, data, goExercise } = props;
 
   const _data = data.find((item) => item.status == 0 && item.sheet?.type == 3);
-  console.log("🚀 ~ HistoryCard ~ _data:", _data);
 
   return (
     <div style={{ border: "1px solid #ffffff", borderRadius: 5, padding: 10 }}>

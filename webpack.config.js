@@ -16,6 +16,13 @@ module.exports = {
   optimization: {
     usedExports: true,
     sideEffects: true,
+    // optimization: {
+    //   splitChunks: {
+    //     chunks: "all",
+    //     minSize: 20000,
+    //     maxSize: 244000,
+    //   },
+    // },
   },
   module: {
     rules: [

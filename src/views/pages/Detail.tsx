@@ -46,12 +46,12 @@ export const Detail = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { id = "" } = location.state || {};
+  const { id = "", type = 1 } = location.state || {};
   const defaultCombineKey = location.state?.combineKey || "";
   const [combineKey, setCombineKey] = React.useState(defaultCombineKey);
 
   React.useEffect(() => {
-    getQuestion({ category: setting.categoryId, id, combineKey });
+    getQuestion({ category: setting.categoryId, id, combineKey, type });
   }, []);
 
   React.useEffect(() => {
@@ -94,12 +94,21 @@ export const Detail = () => {
     category,
     id,
     combineKey,
+    type = 1,
   }: {
     category?: string;
     id?: number;
     combineKey?: string | null;
+    type?: number;
   }) => {
     setLoading(true);
+    if (type == 2) {
+      vscode.postMessage({
+        command: "getQuickQuestion",
+        postData: { category, combineKey },
+      });
+      return;
+    }
     vscode.postMessage({
       command: "getQuestion",
       postData: { category, id, combineKey },
@@ -184,6 +193,7 @@ export const Detail = () => {
   };
 
   const list = obj[page];
+  console.log("🚀 ~ Detail ~ list:", list.length);
 
   return (
     <div>

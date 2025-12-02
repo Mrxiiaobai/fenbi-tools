@@ -1,13 +1,14 @@
 import * as React from "react";
-import { Spin, Menu, Modal, message, Select, Button, Flex } from "antd";
+import { Spin, Modal, message, Select, Button, Flex, Tree } from "antd";
 import { TCacheData, TSetting } from "../types";
 import { QuestionCount } from "../components/question-count";
+import { CustomTree } from "../components/custom-tree";
 import { HistoryCard } from "../components/history-card";
 import { useNavigate } from "react-router-dom";
 import { useSetting } from "../components/hooks";
 import { categoryOptions } from "../utils/constant";
 import { getVscodeApi } from "../utils/vscodeApi";
-import { modifyArray } from "../utils/modifyArray";
+import { modifyArrayToTree } from "../utils/modifyArray";
 
 const vscode = getVscodeApi();
 
@@ -35,15 +36,18 @@ export const Home = () => {
       if (message.command === "init") {
         const menu = message.data.menu;
         const cacheResult = message.data.cacheResult;
-        setTreeData(modifyArray(menu, cacheResult?.keypointIds || []));
+        const _data = modifyArrayToTree(menu, cacheResult || {}, treeClick);
+        setTreeData(_data as any);
       }
-      if (message.command === "pageCache") setCacheData(message.data);
+      if (message.command === "pageCache") {
+        console.log("🚀 ~ Home ~ message.data:", message.data);
+        setCacheData(message.data);
+      }
       if (message.command === "message") {
         pageInit({ categoryId: setting.categoryId });
         messageApi.info(message.data.message);
       }
       if (message.command === "history") {
-        console.log("🚀 ~ Home ~ message.data:", message.data);
         setHistoryList(message.data);
       }
     });
@@ -69,17 +73,15 @@ export const Home = () => {
     });
   };
 
-  const menuClick = ({ key }: any) => {
-    setLoading(true);
+  const treeClick = (e: any, cacheResult: any) => {
+    const key = e.id;
 
+    setLoading(true);
     let combineKey: string | null = null;
-    const len = cacheData?.keypointIds?.length || 0;
-    if (cacheData?.keypointIds[len - 1] == key) {
-      combineKey = cacheData?.combineKey || "";
+    const len = cacheResult?.keypointIds?.length || 0;
+    if (len > 0 && cacheResult?.keypointIds.includes(key)) {
+      combineKey = cacheResult?.combineKey || "";
     }
-    // if (cacheData?.keypointIds?.includes(Number(key))) {
-    //   exerciseId = cacheData?.exerciseId;
-    // }
     goDetail({ id: Number(key), combineKey: combineKey || "" });
   };
 
@@ -105,14 +107,17 @@ export const Home = () => {
   const goDetail = ({
     id,
     combineKey,
+    type,
   }: {
     id?: number;
     combineKey?: string;
+    type?: number;
   }) => {
     navigate("/detail", {
       state: {
         id,
         combineKey,
+        type,
       },
     });
   };
@@ -169,7 +174,6 @@ export const Home = () => {
               size="small"
               style={{ borderColor: "white" }}
               onClick={() => {
-                console.log("1111222");
                 vscode.postMessage({
                   command: "openInBrowser",
                   postData: {
@@ -179,6 +183,19 @@ export const Home = () => {
               }}
             >
               入群交流
+            </Button>
+          </Flex>
+          <Flex justify="flex-start" align="center">
+            <Button
+              type="link"
+              style={{ borderColor: "white" }}
+              onClick={() => {
+                goDetail({
+                  type: 2,
+                });
+              }}
+            >
+              快速练习
             </Button>
           </Flex>
           <Select
@@ -204,13 +221,7 @@ export const Home = () => {
               }}
             />
             <QuestionCount onChange={onQuestionCountChange} />
-            <Menu
-              theme="dark"
-              onClick={menuClick}
-              style={{ width: 256 }}
-              mode="inline"
-              items={treeData}
-            />
+            <CustomTree treeData={treeData} />
           </div>
         </div>
       </Spin>
