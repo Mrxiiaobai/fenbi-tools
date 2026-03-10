@@ -9,7 +9,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.getMark = exports.getCurrent = exports.getUserQuestionInfo = exports.changeQuestionCount = exports.getUserInfo = exports.submit = exports.incr = exports.getHistory = exports.studyTime = exports.getCache = exports.getSolutionQuestion = exports.getSolution = exports.getCategories = exports.getQuestion = exports.getExercisesUrl = exports.getQuickExercisesId = exports.getExercisesId = void 0;
+exports.courseSetChange = exports.getMark = exports.getCurrent = exports.getUserQuestionInfo = exports.changeQuestionCount = exports.getUserInfo = exports.submit = exports.incr = exports.getHistory = exports.studyTime = exports.getCache = exports.getSolutionQuestion = exports.getSolution = exports.getCategories = exports.getQuestion = exports.getExercisesUrl = exports.getQuickExercisesId = exports.getExercisesId = void 0;
 // import * as vscode from "vscode";
 const func_1 = require("./func");
 const request_1 = require("./request");
@@ -17,10 +17,14 @@ const getExercisesId = (category = "xingce", params) => __awaiter(void 0, void 0
     const userInfo = yield (0, exports.getUserQuestionInfo)();
     const { questionCount, yearScope, correctRatioLow, correctRatioHigh } = userInfo.data;
     const url = `https://tiku.fenbi.com/api/${category || "xingce"}/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+    let limit = questionCount || 15;
+    if (category == "shenlun") {
+        limit = 1;
+    }
     const res = yield (0, request_1.default)("FORM", url, {
         type: 3,
         keypointId: params.keypointId,
-        limit: questionCount || 15,
+        limit: limit,
         exerciseTimeMode: 2,
         yearScope: yearScope,
         correctRatioLow: correctRatioLow,
@@ -104,23 +108,16 @@ const getHistory = ({ category = "xingce", count = 15, categoryId, }) => __await
 });
 exports.getHistory = getHistory;
 const incr = (category = "xingce", combineKey, params) => __awaiter(void 0, void 0, void 0, function* () {
-    console.log("🚀 ~ incr ~ combineKey:", combineKey);
-    console.log("🚀 ~ incr ~ params:", params);
     const url = `https://tiku.fenbi.com/combine/exercise/incrUpdate?key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
     // const url = `https://tiku.fenbi.com/api/${category}/async/exercises/${exercisesId}/incr?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
     const res = yield (0, request_1.default)("POST", url, [params]);
-    console.log("🚀 ~ incr ~ res:", res);
     return res;
 });
 exports.incr = incr;
 const submit = (category = "xingce", combineKey) => __awaiter(void 0, void 0, void 0, function* () {
     const url = `https://tiku.fenbi.com/combine/exercise/submit?key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
     // const url = `https://tiku.fenbi.com/api/${category}/async/exercises/${exercisesId}/submit?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
-    const res = yield (0, request_1.default)("POST", url, {}
-    // {
-    //   "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-    // }
-    );
+    const res = yield (0, request_1.default)("POST", url, {});
     // if (res.msg == "needPayment") {
     //   return Promise.reject("需要VIP权限，请前往官网购买");
     // }
@@ -162,4 +159,11 @@ const getMark = ({ category = "xingce", combineKey, }) => __awaiter(void 0, void
     const url = `https://tiku.fenbi.com/combine/mark/getMark?exerciseKey=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
 });
 exports.getMark = getMark;
+const courseSetChange = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    const url = `https://tiku.fenbi.com/activity/userquiz/courseSetChange?courseSetPrefix=${params.category}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+    const res = yield (0, request_1.default)("PUT", url, {});
+    console.log("🚀 ~ courseSetChange ~ res:", res);
+    return res;
+});
+exports.courseSetChange = courseSetChange;
 //# sourceMappingURL=service.js.map

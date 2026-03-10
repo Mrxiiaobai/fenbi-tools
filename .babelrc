@@ -1,0 +1,17 @@
+{
+  "presets": [
+    "@babel/preset-env",
+    "@babel/preset-react", // ← 必须有它！！
+    "@babel/preset-typescript"
+  ]
+  //   "plugins": [
+  //     [
+  //       "import",
+  //       {
+  //         "libraryName": "antd",
+  //         "libraryDirectory": "es",
+  //         "style": "css"
+  //       }
+  //     ]
+  //   ]
+}

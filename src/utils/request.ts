@@ -11,10 +11,10 @@ const isJSON = (data: any) => {
 };
 
 const ajax = (
-  methods: "POST" | "GET" | "FORM",
+  methods: "POST" | "GET" | "FORM" | "PUT" | "DELETE",
   url: string,
   params?: any,
-  headers?: any
+  headers?: any,
 ) => {
   const parsedUrl = new URL(url);
   const config = vscode.workspace.getConfiguration("fenbiTools");
@@ -57,11 +57,15 @@ const ajax = (
       vscode.window.showErrorMessage(`${error}`);
     });
 
-    if (methods === "POST") {
-      req.write(JSON.stringify(params));
+    if (methods === "POST" || methods === "PUT") {
+      const body = JSON.stringify(params);
+      req.setHeader("Content-Length", Buffer.byteLength(body));
+      req.write(body);
     }
     if (methods === "FORM") {
-      req.write(toUrlEncoded(params));
+      const body = toUrlEncoded(params);
+      req.setHeader("Content-Length", Buffer.byteLength(body));
+      req.write(body);
     }
     req.end();
   });

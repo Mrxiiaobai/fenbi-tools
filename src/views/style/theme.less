@@ -1,12 +1,13 @@
 :root {
   --primary-color: #ffffff; /* 默认值 */
   --primary-backgroundColor: #21222b; /* 默认值 */
+  --primary-fontSize: 12px; /* 默认值 */
 }
 
 * {
   color: var(--primary-color) !important;
   background: var(--primary-backgroundColor) !important;
-  font-size: 12px;
+  font-size: var(--primary-fontSize);
 
   &::placeholder {
     color: var(--primary-color) !important;
@@ -14,6 +15,10 @@
 
   img {
     background: #ffffff !important;
+  }
+
+  .bg_transparent {
+    background: transparent !important;
   }
 }
 

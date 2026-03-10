@@ -2,6 +2,7 @@ import * as vscode from "vscode";
 import { buildMaterialsForQuestions, modifyArray } from "../utils/func";
 import {
   changeQuestionCount,
+  courseSetChange,
   getCache,
   getCategories,
   getCurrent,
@@ -25,7 +26,9 @@ export default class WebviewHandle {
       const { postData = {}, command = "" } = message || {};
 
       if (command === "pageInit") this.pageInit(postData);
+      if (command === "changeCategory") this.changeCategory(postData);
       if (command === "getQuestion") this.getQuestion(postData);
+      if (command === "getSolution") this.getSolutions(postData);
       if (command === "getQuickQuestion") this.getQuickQuestion(postData);
       if (command === "submit") this.submit(postData);
       if (command === "jumpFenbi") this.jump(postData);
@@ -62,7 +65,6 @@ export default class WebviewHandle {
 
   async pageInit(postData: any) {
     const cacheResult = await getCache(postData?.categoryId || "xingce");
-    console.log("🚀 ~ WebviewHandle ~ pageInit ~ cacheResult:", cacheResult);
     const res = await getCategories(postData?.categoryId || "xingce");
 
     const config = vscode.workspace.getConfiguration("fenbiTools");
@@ -86,6 +88,11 @@ export default class WebviewHandle {
       command: "pageCache",
       data: cacheResult,
     });
+  }
+
+  async changeCategory(postData: any) {
+    console.log("🚀 ~ WebviewHandle ~ changeCategory ~ postData:", postData);
+    courseSetChange({ category: postData.categoryId });
   }
 
   async getQuestion({
@@ -159,6 +166,7 @@ export default class WebviewHandle {
     combineKey?: string;
   }) {
     let postCombinKey = combineKey || "";
+    console.log("getQuickQuestion", postCombinKey);
 
     if (!postCombinKey) {
       const res = await getQuickExercisesId(category);
@@ -255,7 +263,7 @@ export default class WebviewHandle {
       const res = await getSolution(params.category, params.combineKey);
       const solutionRes = await getSolutionQuestion(
         res?.data?.staticUrl?.urls?.[0],
-        params.category
+        params.category,
       );
 
       (solutionRes?.solutions || []).forEach((item: any) => {
@@ -282,9 +290,38 @@ export default class WebviewHandle {
     }
   }
 
+  async getSolutions(postData: { category: string; combineKey: string }) {
+    console.log("🚀 ~ WebviewHandle ~ getSolution ~ postData:", postData);
+    const res = await getSolution(postData.category, postData.combineKey);
+    const solutionRes = await getSolutionQuestion(
+      res?.data?.staticUrl?.urls?.[0],
+      postData.category,
+    );
+
+    (solutionRes?.solutions || []).forEach((item: any) => {
+      const userAnswers = res?.data?.userAnswers;
+      for (const key in userAnswers) {
+        if (key == item.globalId) {
+          item["userAnswer"] = userAnswers[key].answer;
+        }
+      }
+    });
+
+    solutionRes["correctCount"] =
+      (solutionRes?.solutions || []).filter((item: any) => {
+        return item?.userAnswer?.choice == item?.correctAnswer?.choice;
+      })?.length || 0;
+    solutionRes["questionCount"] = (solutionRes?.solutions || []).length;
+
+    webview.postMessage({
+      command: "solution",
+      data: solutionRes,
+    });
+  }
+
   jump(params: { exerciseId: number }) {
     const url = vscode.Uri.parse(
-      `https://www.fenbi.com/spa/tiku/report/exam/solution/xingce/xingce/${params.exerciseId}/2`
+      `https://www.fenbi.com/spa/tiku/report/exam/solution/xingce/xingce/${params.exerciseId}/2`,
     );
     vscode.env.openExternal(url);
   }

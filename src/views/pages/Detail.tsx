@@ -14,6 +14,7 @@ import { useSetting } from "../components/hooks";
 import { getVscodeApi } from "../utils/vscodeApi";
 import { ShenlunItem } from "../components/shenlun-item";
 
+import CanvasDrawing from "../components/canvas-drawing";
 import "../style/detail.less";
 
 interface TLastAnswerRecord {
@@ -29,6 +30,7 @@ export const Detail = () => {
   const [modal, contextHolder] = Modal.useModal();
   const [isFirst, setFirst] = React.useState(false);
   const [startTime, setStartTime] = React.useState(0);
+  // const [showDraw, setShowDraw] = React.useState(false);
   const [lastAnswerRecord, setLastAnswerRecord] =
     React.useState<TLastAnswerRecord>({
       // lastTime: 0,
@@ -193,29 +195,29 @@ export const Detail = () => {
   };
 
   const list = obj[page];
-  console.log("🚀 ~ Detail ~ list:", list.length);
 
   return (
-    <div>
+    <div className="detail_page">
       <Spin tip="loading..." spinning={loading}>
         <div className="question-container">
-          <Space wrap>
+          <div className="top-bar">
             <Button type="text" onClick={onBack}>
               返回上一页
             </Button>
             {page == 1 && (
-              <Button
-                type="primary"
-                style={{ borderColor: "white" }}
-                onClick={onSubmit}
-              >
-                交卷
-              </Button>
+              <>
+                <Button
+                  type="primary"
+                  style={{ borderColor: "white" }}
+                  onClick={onSubmit}
+                >
+                  交卷
+                </Button>
+              </>
             )}
 
             {page == 2 && <Button onClick={onJump}>跳转粉笔网址</Button>}
-          </Space>
-
+          </div>
           {page == 2 && (
             <div>
               答对题目数：{solutionData?.correctCount} /{" "}
@@ -249,6 +251,8 @@ export const Detail = () => {
               );
             })}
           </div>
+
+          <CanvasDrawing />
 
           {page == 1 && (
             <Button

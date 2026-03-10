@@ -1,9 +1,10 @@
 import * as React from "react";
 import { TMaterials, TQuestionItem, TSolutionItem } from "../types";
-import { Radio, RadioChangeEvent } from "antd";
+import { Button, Radio, RadioChangeEvent, Space } from "antd";
 import { radioMap } from "../utils/constant";
 import { ThemeContext } from "../context/themeContext";
 import { setImg } from "../utils/setImg";
+import { useSetting } from "../components/hooks";
 
 interface TQuestionItemProps {
   data: TSolutionItem[];
@@ -13,6 +14,12 @@ interface TQuestionItemProps {
 }
 export const QuestionItem = (props: TQuestionItemProps) => {
   const { data = [], materials = [], onChange, index } = props;
+
+  const [excludeMap, setExcludeMap] = React.useState<Record<string, boolean>>(
+    {},
+  );
+
+  const { setting } = useSetting();
 
   return (
     <div>
@@ -36,17 +43,24 @@ export const QuestionItem = (props: TQuestionItemProps) => {
               ></div>
             )}
             <div className="question-item">
-              <span>{index + 1}、</span>
-              <span
+              <span>
+                {index + 1}、<span>单选题</span>
+              </span>
+              <div
                 dangerouslySetInnerHTML={{
                   __html: setImg(ele.content),
                 }}
-              ></span>
+              ></div>
 
               <div className="answer-item">
                 {(ele.accessories || []).map((access: any, ind: number) => {
                   return (
                     <Radio.Group
+                      style={{
+                        display: "flex",
+                        flexDirection: "column",
+                        // gap: 8,
+                      }}
                       onChange={(e) => {
                         onChange(e, ele, index);
                       }}
@@ -57,21 +71,47 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                       }
                     >
                       {(access?.options || []).map(
-                        (option: any, index: number) => {
+                        (option: any, index2: number) => {
                           const newOption = setImg(option);
+                          const key = `${index}-${ind}-${index2}`;
+                          const excluded = excludeMap[key];
                           return (
-                            <Radio value={index}>
-                              <div>
-                                <span>{radioMap[index + 1]}、</span>
-                                <span
-                                  dangerouslySetInnerHTML={{
-                                    __html: newOption,
+                            <Space style={{ justifyContent: "space-between" }}>
+                              <Radio value={index2}>
+                                <div
+                                  style={{
+                                    textDecoration: excluded
+                                      ? "line-through"
+                                      : "",
                                   }}
-                                ></span>
-                              </div>
-                            </Radio>
+                                >
+                                  <span>{radioMap[index2 + 1]}、</span>
+                                  <span
+                                    dangerouslySetInnerHTML={{
+                                      __html: newOption,
+                                    }}
+                                  ></span>
+                                </div>
+                              </Radio>
+                              {setting.needLineThrough ? (
+                                <Button
+                                  size="small"
+                                  onClick={() => {
+                                    const key = `${index}-${ind}-${index2}`;
+                                    setExcludeMap((prev) => ({
+                                      ...prev,
+                                      [key]: excluded ? false : true,
+                                    }));
+                                  }}
+                                >
+                                  {excluded ? "重置" : "排除"}
+                                </Button>
+                              ) : (
+                                <></>
+                              )}
+                            </Space>
                           );
-                        }
+                        },
                       )}
                     </Radio.Group>
                   );

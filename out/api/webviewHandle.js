@@ -18,8 +18,12 @@ class WebviewHandle {
             const { postData = {}, command = "" } = message || {};
             if (command === "pageInit")
                 this.pageInit(postData);
+            if (command === "changeCategory")
+                this.changeCategory(postData);
             if (command === "getQuestion")
                 this.getQuestion(postData);
+            if (command === "getSolution")
+                this.getSolutions(postData);
             if (command === "getQuickQuestion")
                 this.getQuickQuestion(postData);
             if (command === "submit")
@@ -58,7 +62,6 @@ class WebviewHandle {
     pageInit(postData) {
         return __awaiter(this, void 0, void 0, function* () {
             const cacheResult = yield (0, service_1.getCache)((postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce");
-            console.log("🚀 ~ WebviewHandle ~ pageInit ~ cacheResult:", cacheResult);
             const res = yield (0, service_1.getCategories)((postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce");
             const config = vscode.workspace.getConfiguration("fenbiTools");
             webview_1.webview.postMessage({
@@ -79,6 +82,12 @@ class WebviewHandle {
                 command: "pageCache",
                 data: cacheResult,
             });
+        });
+    }
+    changeCategory(postData) {
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log("🚀 ~ WebviewHandle ~ changeCategory ~ postData:", postData);
+            (0, service_1.courseSetChange)({ category: postData.categoryId });
         });
     }
     getQuestion({ category, combineKey, id, }) {
@@ -132,6 +141,7 @@ class WebviewHandle {
         var _a, _b, _c, _d, _e, _f, _g;
         return __awaiter(this, void 0, void 0, function* () {
             let postCombinKey = combineKey || "";
+            console.log("getQuickQuestion", postCombinKey);
             if (!postCombinKey) {
                 const res = yield (0, service_1.getQuickExercisesId)(category);
                 postCombinKey = res.key;
@@ -239,6 +249,33 @@ class WebviewHandle {
             catch (error) {
                 console.log("🚀 ~ WebviewHandle ~ submit ~ error:", error);
             }
+        });
+    }
+    getSolutions(postData) {
+        var _a, _b, _c, _d;
+        return __awaiter(this, void 0, void 0, function* () {
+            console.log("🚀 ~ WebviewHandle ~ getSolution ~ postData:", postData);
+            const res = yield (0, service_1.getSolution)(postData.category, postData.combineKey);
+            const solutionRes = yield (0, service_1.getSolutionQuestion)((_c = (_b = (_a = res === null || res === void 0 ? void 0 : res.data) === null || _a === void 0 ? void 0 : _a.staticUrl) === null || _b === void 0 ? void 0 : _b.urls) === null || _c === void 0 ? void 0 : _c[0], postData.category);
+            ((solutionRes === null || solutionRes === void 0 ? void 0 : solutionRes.solutions) || []).forEach((item) => {
+                var _a;
+                const userAnswers = (_a = res === null || res === void 0 ? void 0 : res.data) === null || _a === void 0 ? void 0 : _a.userAnswers;
+                for (const key in userAnswers) {
+                    if (key == item.globalId) {
+                        item["userAnswer"] = userAnswers[key].answer;
+                    }
+                }
+            });
+            solutionRes["correctCount"] =
+                ((_d = ((solutionRes === null || solutionRes === void 0 ? void 0 : solutionRes.solutions) || []).filter((item) => {
+                    var _a, _b;
+                    return ((_a = item === null || item === void 0 ? void 0 : item.userAnswer) === null || _a === void 0 ? void 0 : _a.choice) == ((_b = item === null || item === void 0 ? void 0 : item.correctAnswer) === null || _b === void 0 ? void 0 : _b.choice);
+                })) === null || _d === void 0 ? void 0 : _d.length) || 0;
+            solutionRes["questionCount"] = ((solutionRes === null || solutionRes === void 0 ? void 0 : solutionRes.solutions) || []).length;
+            webview_1.webview.postMessage({
+                command: "solution",
+                data: solutionRes,
+            });
         });
     }
     jump(params) {

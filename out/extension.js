@@ -1,4 +1,3 @@
-"use strict";
 var __create = Object.create;
 var __defProp = Object.defineProperty;
 var __getOwnPropDesc = Object.getOwnPropertyDescriptor;
@@ -38940,11 +38939,15 @@ var ajax = (methods, url, params, headers) => {
       reject(error);
       vscode3.window.showErrorMessage(`${error}`);
     });
-    if (methods === "POST") {
-      req.write(JSON.stringify(params));
+    if (methods === "POST" || methods === "PUT") {
+      const body = JSON.stringify(params);
+      req.setHeader("Content-Length", Buffer.byteLength(body));
+      req.write(body);
     }
     if (methods === "FORM") {
-      req.write(toUrlEncoded(params));
+      const body = toUrlEncoded(params);
+      req.setHeader("Content-Length", Buffer.byteLength(body));
+      req.write(body);
     }
     req.end();
   });
@@ -38959,13 +38962,17 @@ var getExercisesId = async (category = "xingce", params) => {
   const userInfo = await getUserQuestionInfo();
   const { questionCount, yearScope, correctRatioLow, correctRatioHigh } = userInfo.data;
   const url = `https://tiku.fenbi.com/api/${category || "xingce"}/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+  let limit = questionCount || 15;
+  if (category == "shenlun") {
+    limit = 1;
+  }
   const res = await request_default(
     "FORM",
     url,
     {
       type: 3,
       keypointId: params.keypointId,
-      limit: questionCount || 15,
+      limit,
       exerciseTimeMode: 2,
       yearScope,
       correctRatioLow,
@@ -39050,11 +39057,8 @@ var getHistory = async ({
   return res;
 };
 var incr = async (category = "xingce", combineKey, params) => {
-  console.log("\u{1F680} ~ incr ~ combineKey:", combineKey);
-  console.log("\u{1F680} ~ incr ~ params:", params);
   const url = `https://tiku.fenbi.com/combine/exercise/incrUpdate?key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
   const res = await request_default("POST", url, [params]);
-  console.log("\u{1F680} ~ incr ~ res:", res);
   return res;
 };
 var submit = async (category = "xingce", combineKey) => {
@@ -39090,6 +39094,12 @@ var getCurrent = async () => {
   const res = await request_default("GET", url);
   return res;
 };
+var courseSetChange = async (params) => {
+  const url = `https://tiku.fenbi.com/activity/userquiz/courseSetChange?courseSetPrefix=${params.category}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+  const res = await request_default("PUT", url, {});
+  console.log("\u{1F680} ~ courseSetChange ~ res:", res);
+  return res;
+};
 
 // src/api/webviewHandle.ts
 var WebviewHandle = class {
@@ -39098,8 +39108,12 @@ var WebviewHandle = class {
       const { postData = {}, command = "" } = message || {};
       if (command === "pageInit")
         this.pageInit(postData);
+      if (command === "changeCategory")
+        this.changeCategory(postData);
       if (command === "getQuestion")
         this.getQuestion(postData);
+      if (command === "getSolution")
+        this.getSolutions(postData);
       if (command === "getQuickQuestion")
         this.getQuickQuestion(postData);
       if (command === "submit")
@@ -39139,7 +39153,6 @@ var WebviewHandle = class {
   }
   async pageInit(postData) {
     const cacheResult = await getCache(postData?.categoryId || "xingce");
-    console.log("\u{1F680} ~ WebviewHandle ~ pageInit ~ cacheResult:", cacheResult);
     const res = await getCategories(postData?.categoryId || "xingce");
     const config = vscode4.workspace.getConfiguration("fenbiTools");
     webview.postMessage({
@@ -39158,6 +39171,10 @@ var WebviewHandle = class {
       command: "pageCache",
       data: cacheResult
     });
+  }
+  async changeCategory(postData) {
+    console.log("\u{1F680} ~ WebviewHandle ~ changeCategory ~ postData:", postData);
+    courseSetChange({ category: postData.categoryId });
   }
   async getQuestion({
     category,
@@ -39214,6 +39231,7 @@ var WebviewHandle = class {
     combineKey
   }) {
     let postCombinKey = combineKey || "";
+    console.log("getQuickQuestion", postCombinKey);
     if (!postCombinKey) {
       const res = await getQuickExercisesId(category);
       postCombinKey = res.key;
@@ -39317,6 +39335,30 @@ var WebviewHandle = class {
     } catch (error) {
       console.log("\u{1F680} ~ WebviewHandle ~ submit ~ error:", error);
     }
+  }
+  async getSolutions(postData) {
+    console.log("\u{1F680} ~ WebviewHandle ~ getSolution ~ postData:", postData);
+    const res = await getSolution(postData.category, postData.combineKey);
+    const solutionRes = await getSolutionQuestion(
+      res?.data?.staticUrl?.urls?.[0],
+      postData.category
+    );
+    (solutionRes?.solutions || []).forEach((item) => {
+      const userAnswers = res?.data?.userAnswers;
+      for (const key in userAnswers) {
+        if (key == item.globalId) {
+          item["userAnswer"] = userAnswers[key].answer;
+        }
+      }
+    });
+    solutionRes["correctCount"] = (solutionRes?.solutions || []).filter((item) => {
+      return item?.userAnswer?.choice == item?.correctAnswer?.choice;
+    })?.length || 0;
+    solutionRes["questionCount"] = (solutionRes?.solutions || []).length;
+    webview.postMessage({
+      command: "solution",
+      data: solutionRes
+    });
   }
   jump(params) {
     const url = vscode4.Uri.parse(

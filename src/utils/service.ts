@@ -6,7 +6,7 @@ export const getExercisesId = async (
   category: string = "xingce",
   params: {
     keypointId: number;
-  }
+  },
 ) => {
   const userInfo = await getUserQuestionInfo();
   const { questionCount, yearScope, correctRatioLow, correctRatioHigh } =
@@ -16,13 +16,18 @@ export const getExercisesId = async (
     category || "xingce"
   }/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
 
+  let limit = questionCount || 15;
+  if (category == "shenlun") {
+    limit = 1;
+  }
+
   const res = await ajax(
     "FORM",
     url,
     {
       type: 3,
       keypointId: params.keypointId,
-      limit: questionCount || 15,
+      limit: limit,
       exerciseTimeMode: 2,
       yearScope: yearScope,
       correctRatioLow: correctRatioLow,
@@ -30,7 +35,7 @@ export const getExercisesId = async (
     },
     {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-    }
+    },
   );
 
   return res;
@@ -50,7 +55,7 @@ export const getQuickExercisesId = async (category: string = "xingce") => {
     },
     {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-    }
+    },
   );
 
   return res;
@@ -71,7 +76,7 @@ export const getExercisesUrl = async ({
 export const getQuestion = async (
   category: string,
   url: string,
-  type: number = 1
+  type: number = 1,
 ) => {
   const _url = `${url}&routecs=${category}&type=1&kav=121&av=121&hav=121&app=web`;
   const res = await ajax("GET", _url);
@@ -103,7 +108,7 @@ export const getSolutionQuestion = async (url: string, category = "xingce") => {
 
 export const getCache = async (catrgory: string = "xingce") => {
   const url = `https://tiku.fenbi.com/api/${catrgory}/category-exercises-unfinished?noCacheTag=${Math.round(
-    1e3 * Math.random()
+    1e3 * Math.random(),
   )}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
   const res = await ajax("GET", url);
   return res;
@@ -142,7 +147,7 @@ export const getHistory = async ({
   categoryId?: number;
 }) => {
   const url = `https://tiku.fenbi.com/api/${category}/category-exercises?categoryId=${categoryId}&cursor=0&count=${count}&noCacheTag=${Math.round(
-    1e3 * Math.random()
+    1e3 * Math.random(),
   )}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
   const res = await ajax("GET", url);
   return res;
@@ -158,14 +163,11 @@ export const incr = async (
     // questionId: number;
     // questionIndex: number;
     time: number;
-  }
+  },
 ) => {
-  console.log("🚀 ~ incr ~ combineKey:", combineKey);
-  console.log("🚀 ~ incr ~ params:", params);
   const url = `https://tiku.fenbi.com/combine/exercise/incrUpdate?key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
   // const url = `https://tiku.fenbi.com/api/${category}/async/exercises/${exercisesId}/incr?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
   const res = await ajax("POST", url, [params]);
-  console.log("🚀 ~ incr ~ res:", res);
   return res;
 };
 
@@ -175,7 +177,7 @@ export const submit = async (category = "xingce", combineKey: string) => {
   const res = await ajax(
     "POST",
     url,
-    {}
+    {},
     // {
     //   "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
     // }
@@ -228,4 +230,11 @@ export const getMark = async ({
   combineKey: string;
 }) => {
   const url = `https://tiku.fenbi.com/combine/mark/getMark?exerciseKey=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
+};
+
+export const courseSetChange = async (params: { category: string }) => {
+  const url = `https://tiku.fenbi.com/activity/userquiz/courseSetChange?courseSetPrefix=${params.category}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+  const res = await ajax("PUT", url, {});
+  console.log("🚀 ~ courseSetChange ~ res:", res);
+  return res;
 };

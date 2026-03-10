@@ -44,11 +44,17 @@ export const History = () => {
     });
   }, []);
 
-  const goDetail = ({ id, combinKey }: { id?: number; combinKey?: string }) => {
+  const goDetail = ({
+    id,
+    combineKey,
+  }: {
+    id?: number;
+    combineKey?: string;
+  }) => {
     navigate("/detail", {
       state: {
         id,
-        combinKey,
+        combineKey,
       },
     });
   };
@@ -71,7 +77,7 @@ export const History = () => {
                 data={item}
                 goExercise={(data) => {
                   goDetail({
-                    combinKey: data?.key,
+                    combineKey: data?.key,
                     // exerciseId: data?.id,
                   });
                 }}

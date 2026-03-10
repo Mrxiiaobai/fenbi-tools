@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Spin, Modal, message, Select, Button, Flex, Tree } from "antd";
+import { Spin, Modal, message, Select, Button, Flex } from "antd";
 import { TCacheData, TSetting } from "../types";
 import { QuestionCount } from "../components/question-count";
 import { CustomTree } from "../components/custom-tree";
@@ -40,7 +40,6 @@ export const Home = () => {
         setTreeData(_data as any);
       }
       if (message.command === "pageCache") {
-        console.log("🚀 ~ Home ~ message.data:", message.data);
         setCacheData(message.data);
       }
       if (message.command === "message") {
@@ -58,11 +57,15 @@ export const Home = () => {
 
     document.documentElement.style.setProperty(
       "--primary-color",
-      theme.color || "#ffffff"
+      theme.color || "#ffffff",
     );
     document.documentElement.style.setProperty(
       "--primary-backgroundColor",
-      theme.backgroundColor || "#ffffff"
+      theme.backgroundColor || "#ffffff",
+    );
+    document.documentElement.style.setProperty(
+      "--primary-fontSize",
+      `${theme.fontSize || 12}px`,
     );
   };
 
@@ -79,7 +82,7 @@ export const Home = () => {
     setLoading(true);
     let combineKey: string | null = null;
     const len = cacheResult?.keypointIds?.length || 0;
-    if (len > 0 && cacheResult?.keypointIds.includes(key)) {
+    if (len > 0 && cacheResult?.keypointIds?.includes(key)) {
       combineKey = cacheResult?.combineKey || "";
     }
     goDetail({ id: Number(key), combineKey: combineKey || "" });
@@ -144,6 +147,12 @@ export const Home = () => {
   const onChangeCategory = (e: string) => {
     pageInit({
       categoryId: e,
+    });
+    vscode.postMessage({
+      command: "changeCategory",
+      postData: {
+        categoryId: e,
+      },
     });
     getHistory({ count: 15, categoryId: 4, category: e });
     setSetting((prev: any) => ({ ...prev, categoryId: e }));
@@ -215,7 +224,7 @@ export const Home = () => {
               data={historyList}
               goExercise={(data) => {
                 goDetail({
-                  // id: data?.[0]?.id,
+                  type: 1,
                   combineKey: data?.key,
                 });
               }}

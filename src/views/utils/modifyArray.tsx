@@ -9,7 +9,7 @@ export const modifyArrayToTree = (
   level = 1
 ) => {
   return arr.map((item) => {
-    const isContinue = cacheResult?.keypointIds.includes(item.id);
+    const isContinue = cacheResult?.keypointIds?.includes(item.id);
 
     const actionBtn = (
       <Button

@@ -1,4 +1,3 @@
-"use strict";
 // import { webview } from "./../api/webview";
 // import * as vscode from "vscode";
 // import { globalState } from "../utils/globalState";

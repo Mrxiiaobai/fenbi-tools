@@ -13,6 +13,8 @@ const defaultSetting: TSetting = {
   color: "#ffffff",
   backgroundColor: "#ffffff",
   categoryId: "xingce",
+  needLineThrough: false,
+  fontSize: 12,
 };
 
 // Context

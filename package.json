@@ -3,7 +3,7 @@
   "displayName": "Fenbi Tools",
   "description": "粉笔考公&摸鱼学习、考公必备，支持自定义数量、刷题历史、申论等功能",
   "icon": "resources/dark/fish.png",
-  "version": "1.0.15",
+  "version": "1.0.23",
   "license": "ISC",
   "engines": {
     "vscode": "^1.96.0"
@@ -81,6 +81,16 @@
           "type": "string",
           "default": "#21222b",
           "markdownDescription": "自定义背景bgColor颜色，请填写色值，非中文！请修改后刷新"
+        },
+        "fenbiTools.needLineThrough": {
+          "type": "boolean",
+          "default": false,
+          "markdownDescription": "开启后，选项后会增加排除按钮，点击即可给当前选项增加中划线"
+        },
+        "fenbiTools.fontSize": {
+          "type": "number",
+          "default": 12,
+          "markdownDescription": "自定义字体大小（单位px），默认12，请修改后刷新"
         }
       }
     }
@@ -126,14 +136,21 @@
     "webpack-cli": "^4.10.0"
   },
   "dependencies": {
+    "@babel/core": "^7.28.5",
+    "@babel/preset-env": "^7.28.5",
+    "@babel/preset-react": "^7.28.5",
+    "@babel/preset-typescript": "^7.28.5",
     "@types/qs": "^6.9.16",
+    "babel-loader": "^10.0.0",
+    "babel-plugin-import": "^1.13.8",
     "cheerio": "^1.0.0-rc.12",
     "fs": "^0.0.1-security",
     "gulp": "^5.0.0",
     "qs": "^6.13.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^7.9.4"
+    "react-router-dom": "^7.9.4",
+    "webpack-bundle-analyzer": "^5.0.1"
   },
   "repository": {
     "type": "git",

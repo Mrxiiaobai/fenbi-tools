@@ -11,7 +11,7 @@ export function CustomTree({ treeData }: { treeData: any[] }) {
 
     setExpandedKeys((prev) => {
       // 如果已展开，则关闭
-      if (prev.includes(key)) {
+      if (prev?.includes(key)) {
         return prev.filter((k) => k !== key);
       }
 

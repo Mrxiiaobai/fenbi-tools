@@ -46,4 +46,5 @@ export type TSolutionData = TQuestionData & {
 export type TSetting = {
   color: string;
   backgroundColor: string;
+  fontSize?: number;
 };
