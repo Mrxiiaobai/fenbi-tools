@@ -12,6 +12,50 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const vscode = require("vscode");
 const service_1 = require("../utils/service");
 const webview_1 = require("../utils/webview");
+const categoryRouteConfigMap = {
+    xingce: {
+        courseSetPrefix: "xingce",
+        tikuPrefix: "xingce",
+        answerMode: "objective",
+        apiCategory: "xingce",
+    },
+    shenlun: {
+        courseSetPrefix: "shenlun",
+        tikuPrefix: "shenlun",
+        answerMode: "essay",
+        apiCategory: "shenlun",
+    },
+    syzc: {
+        courseSetPrefix: "sydw",
+        tikuPrefix: "syzc",
+        answerMode: "objective",
+        apiCategory: "syzc",
+    },
+    sydw: {
+        courseSetPrefix: "sydw",
+        tikuPrefix: "sydw",
+        answerMode: "objective",
+        apiCategory: "sydw",
+    },
+    zhyynl: {
+        courseSetPrefix: "zhyynl",
+        tikuPrefix: "zhyynl",
+        answerMode: "essay",
+        apiCategory: "sydw",
+    },
+};
+const getCategoryRouteConfig = (category) => {
+    return categoryRouteConfigMap[category || "xingce"] || categoryRouteConfigMap["xingce"];
+};
+const isEssayCategory = (category) => {
+    return getCategoryRouteConfig(category).answerMode === "essay";
+};
+const isCareerCategory = (category) => {
+    return category === "syzc" || category === "sydw" || category === "zhyynl";
+};
+const getFavoriteQuizCourseSetPrefix = (category) => {
+    return isCareerCategory(category) ? "sydw" : "xingce";
+};
 class WebviewHandle {
     onDidReceiveMessage() {
         webview_1.webview.onDidReceiveMessage((message) => {
@@ -48,8 +92,9 @@ class WebviewHandle {
     }
     getHistory({ category = "xingce", count, categoryId, } = {}) {
         return __awaiter(this, void 0, void 0, function* () {
+            const config = getCategoryRouteConfig(category);
             const res = yield (0, service_1.getHistory)({
-                category,
+                category: config.apiCategory,
                 count: count || 15,
                 categoryId: categoryId || undefined,
             });
@@ -61,12 +106,15 @@ class WebviewHandle {
     }
     pageInit(postData) {
         return __awaiter(this, void 0, void 0, function* () {
-            const cacheResult = yield (0, service_1.getCache)((postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce");
-            const res = yield (0, service_1.getCategories)((postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce");
-            const config = vscode.workspace.getConfiguration("fenbiTools");
+            const category = (postData === null || postData === void 0 ? void 0 : postData.categoryId) || "xingce";
+            const config = getCategoryRouteConfig(category);
+            const cacheResult = yield (0, service_1.getCache)(config.apiCategory);
+            const res = yield (0, service_1.getCategories)(category);
+            const favoriteQuizLocationName = yield this.getFavoriteQuizLocationName(category);
+            const settingConfig = vscode.workspace.getConfiguration("fenbiTools");
             webview_1.webview.postMessage({
                 command: "setting",
-                data: config,
+                data: settingConfig,
             });
             // const len = (cacheResult.keypointIds || [])?.length;
             // const lastKeypointIds = len > 0 ? [cacheResult.keypointIds[len - 1]] : [];
@@ -74,6 +122,8 @@ class WebviewHandle {
                 command: "init",
                 // data: modifyArray(res, cacheResult?.keypointIds || []),
                 data: {
+                    categoryId: category,
+                    favoriteQuizLocationName,
                     menu: res,
                     cacheResult: cacheResult || {},
                 },
@@ -87,7 +137,28 @@ class WebviewHandle {
     changeCategory(postData) {
         return __awaiter(this, void 0, void 0, function* () {
             console.log("🚀 ~ WebviewHandle ~ changeCategory ~ postData:", postData);
-            (0, service_1.courseSetChange)({ category: postData.categoryId });
+            const category = postData.categoryId;
+            const config = getCategoryRouteConfig(category);
+            (0, service_1.courseSetChange)({ category: config.courseSetPrefix });
+        });
+    }
+    getFavoriteQuizLocationName(category) {
+        var _a, _b;
+        return __awaiter(this, void 0, void 0, function* () {
+            const courseSetPrefix = getFavoriteQuizCourseSetPrefix(category);
+            try {
+                const res = yield (0, service_1.getCourseSetFavoriteQuiz)({ courseSetPrefix });
+                const favoriteQuizData = (res === null || res === void 0 ? void 0 : res.data) || res;
+                const currentQuizId = (_a = favoriteQuizData === null || favoriteQuizData === void 0 ? void 0 : favoriteQuizData.currentQuizVO) === null || _a === void 0 ? void 0 : _a.quizId;
+                const favoriteQuizVO = (favoriteQuizData === null || favoriteQuizData === void 0 ? void 0 : favoriteQuizData.favoriteQuizVO) || [];
+                const locationName = ((_b = favoriteQuizVO.find((item) => {
+                    return item.id === currentQuizId;
+                })) === null || _b === void 0 ? void 0 : _b.name) || "";
+                return locationName;
+            }
+            catch (error) {
+                return "";
+            }
         });
     }
     getQuestion({ category, combineKey, id, }) {
@@ -98,7 +169,7 @@ class WebviewHandle {
                 const params = {
                     keypointId: id,
                 };
-                if (category === "shenlun") {
+                if (isEssayCategory(category)) {
                     params.count = 1;
                 }
                 const res = yield (0, service_1.getExercisesId)(category, params);
@@ -180,6 +251,7 @@ class WebviewHandle {
         });
     }
     studyTime(params) {
+        const config = getCategoryRouteConfig(params.category);
         (0, service_1.studyTime)({
             exerciseId: params.exerciseId,
             // questionIds: [params.id],
@@ -187,7 +259,7 @@ class WebviewHandle {
             startTime: Date.now(),
             studyTime: 30000,
             subType: 1,
-            tikuPrefix: "xingce",
+            tikuPrefix: config.tikuPrefix,
         });
     }
     inc(params) {
@@ -196,7 +268,7 @@ class WebviewHandle {
                 type: 201,
                 choice: String(params.answer),
             };
-            if (params.category == "shenlun") {
+            if (isEssayCategory(params.category)) {
                 answer = {
                     type: 204,
                     answer: params.answer,
@@ -279,7 +351,8 @@ class WebviewHandle {
         });
     }
     jump(params) {
-        const url = vscode.Uri.parse(`https://www.fenbi.com/spa/tiku/report/exam/solution/xingce/xingce/${params.exerciseId}/2`);
+        const category = params.category || "xingce";
+        const url = vscode.Uri.parse(`https://www.fenbi.com/spa/tiku/report/exam/solution/${category}/${category}/${params.exerciseId}/2`);
         vscode.env.openExternal(url);
     }
     changeQuestionCount(params) {

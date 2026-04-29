@@ -1,22 +1,38 @@
 import * as React from "react";
-import { Spin, Modal, message, Select, Button, Flex } from "antd";
+import { Spin, Modal, message, Select, Button, Flex, Radio } from "antd";
 import { TCacheData, TSetting } from "../types";
 import { QuestionCount } from "../components/question-count";
 import { CustomTree } from "../components/custom-tree";
 import { HistoryCard } from "../components/history-card";
 import { useNavigate } from "react-router-dom";
 import { useSetting } from "../components/hooks";
-import { categoryOptions } from "../utils/constant";
+import {
+  SELECTENUM,
+  categoryOptions,
+  getCategoryRouteConfig,
+  isEssayCategory,
+} from "../utils/constant";
 import { getVscodeApi } from "../utils/vscodeApi";
 import { modifyArrayToTree } from "../utils/modifyArray";
 
 const vscode = getVscodeApi();
+
+const careerCategoryOptions = [
+  { label: "职测", value: SELECTENUM.SYZC },
+  { label: "公基", value: SELECTENUM.SYDW },
+];
+
+const isCareerCategory = (category?: string) => {
+  return category === SELECTENUM.SYZC || category === SELECTENUM.SYDW;
+};
 
 export const Home = () => {
   const [modal, contextHolder] = Modal.useModal();
   const [messageApi, messageHoder] = message.useMessage();
   const [historyList, setHistoryList] = React.useState<any>([]);
   const [loading, setLoading] = React.useState(true);
+  const [favoriteQuizLocationName, setFavoriteQuizLocationName] =
+    React.useState("");
 
   const [treeData, setTreeData] = React.useState([]);
   const [cacheData, setCacheData] = React.useState<TCacheData>();
@@ -26,14 +42,18 @@ export const Home = () => {
   const navigate = useNavigate();
 
   React.useEffect(() => {
-    pageInit({ categoryId: setting.categoryId });
-    getHistory({ count: 15, categoryId: 4 });
+    const category = setting.categoryId || "xingce";
+    const categoryConfig = getCategoryRouteConfig(category);
+    pageInit({ categoryId: category });
+    getHistory({ count: 15, categoryId: categoryConfig.historyCategoryId, category });
     window.addEventListener("message", (event: any) => {
       const message = event.data;
       setLoading(false);
 
       if (message.command === "setting") setTheme(message.data);
       if (message.command === "init") {
+        const categoryId = message.data.categoryId || setting.categoryId;
+        setFavoriteQuizLocationName(message.data.favoriteQuizLocationName || "");
         const menu = message.data.menu;
         const cacheResult = message.data.cacheResult;
         const _data = modifyArrayToTree(menu, cacheResult || {}, treeClick);
@@ -99,10 +119,12 @@ export const Home = () => {
   };
 
   const goHistory = () => {
+    const category = setting.categoryId || "xingce";
+    const categoryConfig = getCategoryRouteConfig(category);
     navigate("/history", {
       state: {
         count: 15,
-        categoryId: 3,
+        categoryId: categoryConfig.historyCategoryId,
       },
     });
   };
@@ -134,29 +156,47 @@ export const Home = () => {
     count?: number;
     categoryId?: number;
   }) => {
+    const currentCategory = category || setting.categoryId;
+    const categoryConfig = getCategoryRouteConfig(currentCategory);
     vscode.postMessage({
       command: "history",
       postData: {
-        category: category || setting.categoryId,
+        category: currentCategory,
         count,
-        categoryId,
+        categoryId: categoryId || categoryConfig.historyCategoryId,
       },
     });
   };
 
-  const onChangeCategory = (e: string) => {
+  const applyCategoryChange = (categoryId: string) => {
+    const categoryConfig = getCategoryRouteConfig(categoryId);
     pageInit({
-      categoryId: e,
+      categoryId,
     });
     vscode.postMessage({
       command: "changeCategory",
       postData: {
-        categoryId: e,
+        categoryId,
       },
     });
-    getHistory({ count: 15, categoryId: 4, category: e });
-    setSetting((prev: any) => ({ ...prev, categoryId: e }));
+    getHistory({
+      count: 15,
+      categoryId: categoryConfig.historyCategoryId,
+      category: categoryId,
+    });
+    setSetting((prev: any) => ({ ...prev, categoryId }));
   };
+
+  const onChangeCategory = (e: string) => {
+    const nextCategory =
+      e === SELECTENUM.SYZC ? SELECTENUM.SYZC : e;
+    applyCategoryChange(nextCategory);
+  };
+
+  const currentCategory = setting.categoryId || SELECTENUM.XINGCE;
+  const mainCategoryValue = isCareerCategory(currentCategory)
+    ? SELECTENUM.SYZC
+    : currentCategory;
 
   return (
     <div>
@@ -207,13 +247,30 @@ export const Home = () => {
               快速练习
             </Button>
           </Flex>
-          <Select
-            options={categoryOptions}
-            value={setting.categoryId || "xingce"}
-            style={{ width: 120, margin: "10px" }}
-            onChange={onChangeCategory}
-          />
-          {setting.categoryId == "shenlun" && (
+          <Flex align="center">
+            <Select
+              options={categoryOptions}
+              value={mainCategoryValue}
+              style={{ width: 120, margin: "10px" }}
+              onChange={onChangeCategory}
+            />
+            {favoriteQuizLocationName && (
+              <span style={{ marginLeft: 4 }}>
+                地区：{favoriteQuizLocationName}
+              </span>
+            )}
+          </Flex>
+          {isCareerCategory(currentCategory) && (
+            <div style={{ margin: "0 10px 10px" }}>
+              <Radio.Group
+                options={careerCategoryOptions}
+                optionType="button"
+                value={currentCategory}
+                onChange={(e) => applyCategoryChange(e.target.value)}
+              />
+            </div>
+          )}
+          {isEssayCategory(setting.categoryId) && (
             <div>
               ps：申论功能需要前往粉笔官网充vip才能交卷，与该插件无关，由于没有vip，交卷及后续功能暂无法支持，感谢理解！
             </div>

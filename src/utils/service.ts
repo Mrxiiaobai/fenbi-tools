@@ -2,6 +2,10 @@
 import { buildMaterialsForQuestions } from "./func";
 import ajax from "./request";
 
+const isEssayCategory = (category?: string) => {
+  return category === "shenlun" || category === "zhyynl";
+};
+
 export const getExercisesId = async (
   category: string = "xingce",
   params: {
@@ -17,7 +21,7 @@ export const getExercisesId = async (
   }/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
 
   let limit = questionCount || 15;
-  if (category == "shenlun") {
+  if (isEssayCategory(category)) {
     limit = 1;
   }
 
@@ -89,6 +93,10 @@ export const getCategories = async (category: string) => {
   if (category === "shenlun") {
     url =
       "https://tiku.fenbi.com/api/shenlun/pdpg/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
+  }
+  if (category === "zhyynl") {
+    url =
+      "https://tiku.fenbi.com/api/zhyynl/etRuleQuestion/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
   }
   const res = await ajax("GET", url);
   return res;
@@ -230,6 +238,16 @@ export const getMark = async ({
   combineKey: string;
 }) => {
   const url = `https://tiku.fenbi.com/combine/mark/getMark?exerciseKey=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
+};
+
+export const getCourseSetFavoriteQuiz = async (params: {
+  courseSetPrefix: string;
+}) => {
+  const url = `https://tiku.fenbi.com/activity/userquiz/getCourseSetFavoriteQuiz?courseSetPrefix=${params.courseSetPrefix}&noCacheTag=${Math.round(
+    1e3 * Math.random(),
+  )}&app=web&kav=125&av=127&hav=125&version=3.0.0.0`;
+  const res = await ajax("GET", url);
+  return res;
 };
 
 export const courseSetChange = async (params: { category: string }) => {

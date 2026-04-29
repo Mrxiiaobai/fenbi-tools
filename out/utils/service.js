@@ -9,16 +9,19 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
     });
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.courseSetChange = exports.getMark = exports.getCurrent = exports.getUserQuestionInfo = exports.changeQuestionCount = exports.getUserInfo = exports.submit = exports.incr = exports.getHistory = exports.studyTime = exports.getCache = exports.getSolutionQuestion = exports.getSolution = exports.getCategories = exports.getQuestion = exports.getExercisesUrl = exports.getQuickExercisesId = exports.getExercisesId = void 0;
+exports.courseSetChange = exports.getCourseSetFavoriteQuiz = exports.getMark = exports.getCurrent = exports.getUserQuestionInfo = exports.changeQuestionCount = exports.getUserInfo = exports.submit = exports.incr = exports.getHistory = exports.studyTime = exports.getCache = exports.getSolutionQuestion = exports.getSolution = exports.getCategories = exports.getQuestion = exports.getExercisesUrl = exports.getQuickExercisesId = exports.getExercisesId = void 0;
 // import * as vscode from "vscode";
 const func_1 = require("./func");
 const request_1 = require("./request");
+const isEssayCategory = (category) => {
+    return category === "shenlun" || category === "zhyynl";
+};
 const getExercisesId = (category = "xingce", params) => __awaiter(void 0, void 0, void 0, function* () {
     const userInfo = yield (0, exports.getUserQuestionInfo)();
     const { questionCount, yearScope, correctRatioLow, correctRatioHigh } = userInfo.data;
     const url = `https://tiku.fenbi.com/api/${category || "xingce"}/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
     let limit = questionCount || 15;
-    if (category == "shenlun") {
+    if (isEssayCategory(category)) {
         limit = 1;
     }
     const res = yield (0, request_1.default)("FORM", url, {
@@ -64,6 +67,10 @@ const getCategories = (category) => __awaiter(void 0, void 0, void 0, function* 
     if (category === "shenlun") {
         url =
             "https://tiku.fenbi.com/api/shenlun/pdpg/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
+    }
+    if (category === "zhyynl") {
+        url =
+            "https://tiku.fenbi.com/api/zhyynl/etRuleQuestion/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
     }
     const res = yield (0, request_1.default)("GET", url);
     return res;
@@ -159,6 +166,12 @@ const getMark = ({ category = "xingce", combineKey, }) => __awaiter(void 0, void
     const url = `https://tiku.fenbi.com/combine/mark/getMark?exerciseKey=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
 });
 exports.getMark = getMark;
+const getCourseSetFavoriteQuiz = (params) => __awaiter(void 0, void 0, void 0, function* () {
+    const url = `https://tiku.fenbi.com/activity/userquiz/getCourseSetFavoriteQuiz?courseSetPrefix=${params.courseSetPrefix}&noCacheTag=${Math.round(1e3 * Math.random())}&app=web&kav=125&av=127&hav=125&version=3.0.0.0`;
+    const res = yield (0, request_1.default)("GET", url);
+    return res;
+});
+exports.getCourseSetFavoriteQuiz = getCourseSetFavoriteQuiz;
 const courseSetChange = (params) => __awaiter(void 0, void 0, void 0, function* () {
     const url = `https://tiku.fenbi.com/activity/userquiz/courseSetChange?courseSetPrefix=${params.category}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
     const res = yield (0, request_1.default)("PUT", url, {});

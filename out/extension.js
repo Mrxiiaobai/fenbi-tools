@@ -38958,12 +38958,15 @@ var toUrlEncoded = (obj) => {
 var request_default = ajax;
 
 // src/utils/service.ts
+var isEssayCategory = (category) => {
+  return category === "shenlun" || category === "zhyynl";
+};
 var getExercisesId = async (category = "xingce", params) => {
   const userInfo = await getUserQuestionInfo();
   const { questionCount, yearScope, correctRatioLow, correctRatioHigh } = userInfo.data;
   const url = `https://tiku.fenbi.com/api/${category || "xingce"}/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
   let limit = questionCount || 15;
-  if (category == "shenlun") {
+  if (isEssayCategory(category)) {
     limit = 1;
   }
   const res = await request_default(
@@ -39017,6 +39020,9 @@ var getCategories = async (category) => {
   let url = `https://tiku.fenbi.com/api/${category}/categories?&filter=keypoint&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
   if (category === "shenlun") {
     url = "https://tiku.fenbi.com/api/shenlun/pdpg/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
+  }
+  if (category === "zhyynl") {
+    url = "https://tiku.fenbi.com/api/zhyynl/etRuleQuestion/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
   }
   const res = await request_default("GET", url);
   return res;
@@ -39094,6 +39100,13 @@ var getCurrent = async () => {
   const res = await request_default("GET", url);
   return res;
 };
+var getCourseSetFavoriteQuiz = async (params) => {
+  const url = `https://tiku.fenbi.com/activity/userquiz/getCourseSetFavoriteQuiz?courseSetPrefix=${params.courseSetPrefix}&noCacheTag=${Math.round(
+    1e3 * Math.random()
+  )}&app=web&kav=125&av=127&hav=125&version=3.0.0.0`;
+  const res = await request_default("GET", url);
+  return res;
+};
 var courseSetChange = async (params) => {
   const url = `https://tiku.fenbi.com/activity/userquiz/courseSetChange?courseSetPrefix=${params.category}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
   const res = await request_default("PUT", url, {});
@@ -39102,6 +39115,50 @@ var courseSetChange = async (params) => {
 };
 
 // src/api/webviewHandle.ts
+var categoryRouteConfigMap = {
+  xingce: {
+    courseSetPrefix: "xingce",
+    tikuPrefix: "xingce",
+    answerMode: "objective",
+    apiCategory: "xingce"
+  },
+  shenlun: {
+    courseSetPrefix: "shenlun",
+    tikuPrefix: "shenlun",
+    answerMode: "essay",
+    apiCategory: "shenlun"
+  },
+  syzc: {
+    courseSetPrefix: "sydw",
+    tikuPrefix: "syzc",
+    answerMode: "objective",
+    apiCategory: "syzc"
+  },
+  sydw: {
+    courseSetPrefix: "sydw",
+    tikuPrefix: "sydw",
+    answerMode: "objective",
+    apiCategory: "sydw"
+  },
+  zhyynl: {
+    courseSetPrefix: "zhyynl",
+    tikuPrefix: "zhyynl",
+    answerMode: "essay",
+    apiCategory: "sydw"
+  }
+};
+var getCategoryRouteConfig = (category) => {
+  return categoryRouteConfigMap[category || "xingce"] || categoryRouteConfigMap["xingce"];
+};
+var isEssayCategory2 = (category) => {
+  return getCategoryRouteConfig(category).answerMode === "essay";
+};
+var isCareerCategory = (category) => {
+  return category === "syzc" || category === "sydw" || category === "zhyynl";
+};
+var getFavoriteQuizCourseSetPrefix = (category) => {
+  return isCareerCategory(category) ? "sydw" : "xingce";
+};
 var WebviewHandle = class {
   onDidReceiveMessage() {
     webview.onDidReceiveMessage((message) => {
@@ -39141,8 +39198,9 @@ var WebviewHandle = class {
     count,
     categoryId
   } = {}) {
+    const config = getCategoryRouteConfig(category);
     const res = await getHistory({
-      category,
+      category: config.apiCategory,
       count: count || 15,
       categoryId: categoryId || void 0
     });
@@ -39152,17 +39210,22 @@ var WebviewHandle = class {
     });
   }
   async pageInit(postData) {
-    const cacheResult = await getCache(postData?.categoryId || "xingce");
-    const res = await getCategories(postData?.categoryId || "xingce");
-    const config = vscode4.workspace.getConfiguration("fenbiTools");
+    const category = postData?.categoryId || "xingce";
+    const config = getCategoryRouteConfig(category);
+    const cacheResult = await getCache(config.apiCategory);
+    const res = await getCategories(category);
+    const favoriteQuizLocationName = await this.getFavoriteQuizLocationName(category);
+    const settingConfig = vscode4.workspace.getConfiguration("fenbiTools");
     webview.postMessage({
       command: "setting",
-      data: config
+      data: settingConfig
     });
     webview.postMessage({
       command: "init",
       // data: modifyArray(res, cacheResult?.keypointIds || []),
       data: {
+        categoryId: category,
+        favoriteQuizLocationName,
         menu: res,
         cacheResult: cacheResult || {}
       }
@@ -39174,7 +39237,24 @@ var WebviewHandle = class {
   }
   async changeCategory(postData) {
     console.log("\u{1F680} ~ WebviewHandle ~ changeCategory ~ postData:", postData);
-    courseSetChange({ category: postData.categoryId });
+    const category = postData.categoryId;
+    const config = getCategoryRouteConfig(category);
+    courseSetChange({ category: config.courseSetPrefix });
+  }
+  async getFavoriteQuizLocationName(category) {
+    const courseSetPrefix = getFavoriteQuizCourseSetPrefix(category);
+    try {
+      const res = await getCourseSetFavoriteQuiz({ courseSetPrefix });
+      const favoriteQuizData = res?.data || res;
+      const currentQuizId = favoriteQuizData?.currentQuizVO?.quizId;
+      const favoriteQuizVO = favoriteQuizData?.favoriteQuizVO || [];
+      const locationName = favoriteQuizVO.find((item) => {
+        return item.id === currentQuizId;
+      })?.name || "";
+      return locationName;
+    } catch (error) {
+      return "";
+    }
   }
   async getQuestion({
     category,
@@ -39186,7 +39266,7 @@ var WebviewHandle = class {
       const params = {
         keypointId: id
       };
-      if (category === "shenlun") {
+      if (isEssayCategory2(category)) {
         params.count = 1;
       }
       const res = await getExercisesId(category, params);
@@ -39271,6 +39351,7 @@ var WebviewHandle = class {
     });
   }
   studyTime(params) {
+    const config = getCategoryRouteConfig(params.category);
     studyTime({
       exerciseId: params.exerciseId,
       // questionIds: [params.id],
@@ -39279,7 +39360,7 @@ var WebviewHandle = class {
       studyTime: 3e4,
       // 30 seconds
       subType: 1,
-      tikuPrefix: "xingce"
+      tikuPrefix: config.tikuPrefix
     });
   }
   async inc(params) {
@@ -39287,7 +39368,7 @@ var WebviewHandle = class {
       type: 201,
       choice: String(params.answer)
     };
-    if (params.category == "shenlun") {
+    if (isEssayCategory2(params.category)) {
       answer = {
         type: 204,
         answer: params.answer
@@ -39361,8 +39442,9 @@ var WebviewHandle = class {
     });
   }
   jump(params) {
+    const category = params.category || "xingce";
     const url = vscode4.Uri.parse(
-      `https://www.fenbi.com/spa/tiku/report/exam/solution/xingce/xingce/${params.exerciseId}/2`
+      `https://www.fenbi.com/spa/tiku/report/exam/solution/${category}/${category}/${params.exerciseId}/2`
     );
     vscode4.env.openExternal(url);
   }

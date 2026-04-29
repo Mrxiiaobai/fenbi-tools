@@ -16,6 +16,7 @@ import { ShenlunItem } from "../components/shenlun-item";
 
 import CanvasDrawing from "../components/canvas-drawing";
 import "../style/detail.less";
+import { isEssayCategory } from "../utils/constant";
 
 interface TLastAnswerRecord {
   // lastTime: number;
@@ -229,7 +230,7 @@ export const Detail = () => {
 
           <div>
             {(list || []).map((item: any, index: number) => {
-              if (setting.categoryId == "shenlun") {
+              if (isEssayCategory(setting.categoryId)) {
                 return (
                   <ShenlunItem
                     key={`${page}-${index}`}
@@ -270,3 +271,4 @@ export const Detail = () => {
     </div>
   );
 };
+
