@@ -1,20 +1,29 @@
-// import * as vscode from "vscode";
-import { buildMaterialsForQuestions } from "./func";
+import { isEssayCategory } from "../shared/category";
+import { buildMaterialsForQuestions } from "../shared/materials";
+import {
+  CacheData,
+  CategoryNode,
+  ExerciseKeyResponse,
+  ExerciseResult,
+  FavoriteQuizResponse,
+  HistoryResponse,
+  MaterialData,
+  QuestionCard,
+  QuestionPayload,
+  SolutionPayload,
+  UserQuestionInfoResponse,
+} from "../shared/types";
 import ajax from "./request";
-
-const isEssayCategory = (category?: string) => {
-  return category === "shenlun" || category === "zhyynl";
-};
 
 export const getExercisesId = async (
   category: string = "xingce",
   params: {
-    keypointId: number;
+    keypointId?: number;
   },
 ) => {
   const userInfo = await getUserQuestionInfo();
   const { questionCount, yearScope, correctRatioLow, correctRatioHigh } =
-    userInfo.data;
+    userInfo.data || {};
 
   const url = `https://tiku.fenbi.com/api/${
     category || "xingce"
@@ -25,7 +34,7 @@ export const getExercisesId = async (
     limit = 1;
   }
 
-  const res = await ajax(
+  const res = await ajax<ExerciseKeyResponse>(
     "FORM",
     url,
     {
@@ -50,7 +59,7 @@ export const getQuickExercisesId = async (category: string = "xingce") => {
     category || "xingce"
   }/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
 
-  const res = await ajax(
+  const res = await ajax<ExerciseKeyResponse>(
     "FORM",
     url,
     {
@@ -73,19 +82,26 @@ export const getExercisesUrl = async ({
   combineKey: string;
 }) => {
   const url = `https://tiku.fenbi.com/combine/exercise/getExercise?format=html&key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
-  const res = await ajax("GET", url);
+  const res = await ajax<ExerciseResult>("GET", url);
   return res;
+};
+
+type QuestionApiResponse = Omit<QuestionPayload, "materials"> & {
+  card?: QuestionCard;
+  materials?: MaterialData[];
 };
 
 export const getQuestion = async (
   category: string,
   url: string,
-  type: number = 1,
+  _type: number = 1,
 ) => {
   const _url = `${url}&routecs=${category}&type=1&kav=121&av=121&hav=121&app=web`;
-  const res = await ajax("GET", _url);
-  res["materials"] = buildMaterialsForQuestions(res?.card, res?.materials);
-  return res;
+  const res = await ajax<QuestionApiResponse>("GET", _url);
+  return {
+    ...res,
+    materials: buildMaterialsForQuestions(res.card, res.materials),
+  };
 };
 
 export const getCategories = async (category: string) => {
@@ -98,19 +114,19 @@ export const getCategories = async (category: string) => {
     url =
       "https://tiku.fenbi.com/api/zhyynl/etRuleQuestion/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
   }
-  const res = await ajax("GET", url);
+  const res = await ajax<CategoryNode[]>("GET", url);
   return res;
 };
 
 export const getSolution = async (category = "xingce", combineKey: string) => {
   const url = `https://tiku.fenbi.com/combine/exercise/getSolution?format=html&key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
-  const res = await ajax("GET", url);
+  const res = await ajax<ExerciseResult>("GET", url);
   return res;
 };
 
 export const getSolutionQuestion = async (url: string, category = "xingce") => {
   const _url = `${url}&routecs=${category}&type=1&kav=121&av=121&hav=121&app=web`;
-  const res = await ajax("GET", _url);
+  const res = await ajax<SolutionPayload>("GET", _url);
   return res;
 };
 
@@ -118,20 +134,12 @@ export const getCache = async (catrgory: string = "xingce") => {
   const url = `https://tiku.fenbi.com/api/${catrgory}/category-exercises-unfinished?noCacheTag=${Math.round(
     1e3 * Math.random(),
   )}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
-  const res = await ajax("GET", url);
+  const res = await ajax<CacheData>("GET", url);
   return res;
 };
 
-// export const getQuestion = async (catrgory: string = "xingce", id: number) => {
-//   const url = `https://tiku.fenbi.com/api/${catrgory}/universal/auth/questions?type=0&id=${id}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
-//   const res = await ajax("GET", url);
-//   console.log("🚀 ~ getQuestion ~ res:", res);
-//   return res;
-// };
-
 export const studyTime = async (params: {
   exerciseId: number;
-  // questionIds: number[];
   questionId: number;
   startTime: number;
   studyTime: number;
@@ -141,7 +149,6 @@ export const studyTime = async (params: {
   const url = `
 https://tiku.fenbi.com/activity/report/studyTime?app=web&kav=121&av=121&hav=121&version=3.0.0.0`;
   const res = await ajax("POST", url, [params]);
-  console.log("🚀 ~ studyTime ~ res:", res);
   return res;
 };
 
@@ -157,7 +164,7 @@ export const getHistory = async ({
   const url = `https://tiku.fenbi.com/api/${category}/category-exercises?categoryId=${categoryId}&cursor=0&count=${count}&noCacheTag=${Math.round(
     1e3 * Math.random(),
   )}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
-  const res = await ajax("GET", url);
+  const res = await ajax<HistoryResponse>("GET", url);
   return res;
 };
 
@@ -167,32 +174,21 @@ export const incr = async (
   params: {
     answer: { type: number; choice?: string; answer?: string };
     key: string;
-    // flag: number;
-    // questionId: number;
-    // questionIndex: number;
     time: number;
   },
 ) => {
   const url = `https://tiku.fenbi.com/combine/exercise/incrUpdate?key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
-  // const url = `https://tiku.fenbi.com/api/${category}/async/exercises/${exercisesId}/incr?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
   const res = await ajax("POST", url, [params]);
   return res;
 };
 
 export const submit = async (category = "xingce", combineKey: string) => {
   const url = `https://tiku.fenbi.com/combine/exercise/submit?key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
-  // const url = `https://tiku.fenbi.com/api/${category}/async/exercises/${exercisesId}/submit?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
-  const res = await ajax(
+  const res = await ajax<ExerciseResult>(
     "POST",
     url,
     {},
-    // {
-    //   "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-    // }
   );
-  // if (res.msg == "needPayment") {
-  //   return Promise.reject("需要VIP权限，请前往官网购买");
-  // }
   return res;
 };
 
@@ -220,7 +216,7 @@ export const changeQuestionCount = async (params: {
 
 export const getUserQuestionInfo = async () => {
   const url = `https://tiku.fenbi.com/activity/userquiz/getUserQuestionInfo?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
-  const res = await ajax("GET", url);
+  const res = await ajax<UserQuestionInfoResponse>("GET", url);
   return res;
 };
 
@@ -237,7 +233,10 @@ export const getMark = async ({
   category: string;
   combineKey: string;
 }) => {
-  const url = `https://tiku.fenbi.com/combine/mark/getMark?exerciseKey=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
+  return ajax(
+    "GET",
+    `https://tiku.fenbi.com/combine/mark/getMark?exerciseKey=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`,
+  );
 };
 
 export const getCourseSetFavoriteQuiz = async (params: {
@@ -246,13 +245,12 @@ export const getCourseSetFavoriteQuiz = async (params: {
   const url = `https://tiku.fenbi.com/activity/userquiz/getCourseSetFavoriteQuiz?courseSetPrefix=${params.courseSetPrefix}&noCacheTag=${Math.round(
     1e3 * Math.random(),
   )}&app=web&kav=125&av=127&hav=125&version=3.0.0.0`;
-  const res = await ajax("GET", url);
+  const res = await ajax<FavoriteQuizResponse>("GET", url);
   return res;
 };
 
 export const courseSetChange = async (params: { category: string }) => {
   const url = `https://tiku.fenbi.com/activity/userquiz/courseSetChange?courseSetPrefix=${params.category}&app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
   const res = await ajax("PUT", url, {});
-  console.log("🚀 ~ courseSetChange ~ res:", res);
   return res;
 };

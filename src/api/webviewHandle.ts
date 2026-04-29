@@ -1,5 +1,22 @@
 import * as vscode from "vscode";
-import { buildMaterialsForQuestions, modifyArray } from "../utils/func";
+import {
+  getCategoryRouteConfig,
+  getFavoriteQuizCourseSetPrefix,
+  isEssayCategory,
+  SELECTENUM,
+} from "../shared/category";
+import {
+  ExerciseResult,
+  FenbiAnswer,
+  FavoriteQuizResponseData,
+  HistoryExercise,
+  QuestionItem,
+  QuestionPayload,
+  SolutionItem,
+  SolutionPayload,
+  UserAnswers,
+  WebviewRequestMessage,
+} from "../shared/types";
 import {
   changeQuestionCount,
   courseSetChange,
@@ -7,7 +24,6 @@ import {
   getCache,
   getCategories,
   getCurrent,
-  // getExercises,
   getExercisesId,
   getExercisesUrl,
   getHistory,
@@ -21,112 +37,167 @@ import {
 } from "../utils/service";
 import { webview } from "../utils/webview";
 
-const categoryRouteConfigMap: Record<
-  string,
-  {
-    courseSetPrefix: string;
-    tikuPrefix: string;
-    answerMode: "objective" | "essay";
-    apiCategory: string;
-  }
-> = {
-  xingce: {
-    courseSetPrefix: "xingce",
-    tikuPrefix: "xingce",
-    answerMode: "objective",
-    apiCategory: "xingce",
-  },
-  shenlun: {
-    courseSetPrefix: "shenlun",
-    tikuPrefix: "shenlun",
-    answerMode: "essay",
-    apiCategory: "shenlun",
-  },
-  syzc: {
-    courseSetPrefix: "sydw",
-    tikuPrefix: "syzc",
-    answerMode: "objective",
-    apiCategory: "syzc",
-  },
-  sydw: {
-    courseSetPrefix: "sydw",
-    tikuPrefix: "sydw",
-    answerMode: "objective",
-    apiCategory: "sydw",
-  },
-  zhyynl: {
-    courseSetPrefix: "zhyynl",
-    tikuPrefix: "zhyynl",
-    answerMode: "essay",
-    apiCategory: "sydw",
-  },
+interface HistoryPostData {
+  category?: string;
+  count?: number;
+  categoryId?: number;
+}
+
+interface PageInitPostData {
+  categoryId?: string;
+}
+
+interface ChangeCategoryPostData {
+  categoryId?: string;
+}
+
+interface QuestionPostData {
+  category?: string;
+  combineKey?: string;
+  id?: number;
+}
+
+interface AnswerPostData {
+  category?: string;
+  combineKey?: string;
+  globalId?: string | number;
+  answer?: string | number;
+  startTime?: number;
+  exerciseId?: number;
+}
+
+interface SubmitPostData {
+  category?: string;
+  combineKey?: string;
+}
+
+interface JumpPostData {
+  exerciseId?: number;
+  category?: string;
+}
+
+interface ChangeQuestionCountPostData {
+  questionCount?: number;
+}
+
+interface OpenInBrowserPostData {
+  url?: string;
+}
+
+const getErrorMessage = (error: unknown) => {
+  return error instanceof Error ? error.message : String(error);
 };
 
-const getCategoryRouteConfig = (category?: string) => {
-  return categoryRouteConfigMap[category || "xingce"] || categoryRouteConfigMap["xingce"];
+const getStaticUrl = (result: ExerciseResult) => {
+  return result.data?.staticUrl?.urls?.[0] || "";
 };
 
-const isEssayCategory = (category?: string) => {
-  return getCategoryRouteConfig(category).answerMode === "essay";
+const attachUserAnswers = <TItem extends QuestionItem | SolutionItem>(
+  items: TItem[] | undefined,
+  userAnswers?: UserAnswers,
+) => {
+  if (!items || !userAnswers) return;
+
+  items.forEach((item) => {
+    const answer = userAnswers[String(item.globalId)]?.answer;
+    if (answer) {
+      item.userAnswer = answer;
+    }
+  });
 };
 
-const isCareerCategory = (category?: string) => {
-  return category === "syzc" || category === "sydw" || category === "zhyynl";
-};
-
-const getFavoriteQuizCourseSetPrefix = (category?: string) => {
-  return isCareerCategory(category) ? "sydw" : "xingce";
+const countCorrectAnswers = (solutions: SolutionItem[] = []) => {
+  return solutions.filter((item) => {
+    return item.userAnswer?.choice === item.correctAnswer?.choice;
+  }).length;
 };
 
 export default class WebviewHandle {
   onDidReceiveMessage() {
-    webview.onDidReceiveMessage((message) => {
-      const { postData = {}, command = "" } = message || {};
+    return webview.onDidReceiveMessage((message) => {
+      void this.handleMessage(message).catch((error) => {
+        this.postError(error);
+      });
+    });
+  }
 
-      if (command === "pageInit") this.pageInit(postData);
-      if (command === "changeCategory") this.changeCategory(postData);
-      if (command === "getQuestion") this.getQuestion(postData);
-      if (command === "getSolution") this.getSolutions(postData);
-      if (command === "getQuickQuestion") this.getQuickQuestion(postData);
-      if (command === "submit") this.submit(postData);
-      if (command === "jumpFenbi") this.jump(postData);
-      if (command === "changeQuestionCount") this.changeQuestionCount(postData);
-      if (command === "answer") {
-        this.studyTime(postData);
-        if (message.inc) this.inc(postData);
-      }
-      if (command === "history") {
-        this.getHistory(postData);
-      }
-      if (command === "openInBrowser") {
-        console.log("openInBrowser", postData);
-        vscode.env.openExternal(vscode.Uri.parse(postData.url));
-      }
+  private async handleMessage(message: WebviewRequestMessage) {
+    const { postData, command = "" } = message || {};
+
+    switch (command) {
+      case "pageInit":
+        await this.pageInit((postData || {}) as PageInitPostData);
+        return;
+      case "changeCategory":
+        await this.changeCategory((postData || {}) as ChangeCategoryPostData);
+        return;
+      case "getQuestion":
+        await this.getQuestion((postData || {}) as QuestionPostData);
+        return;
+      case "getSolution":
+        await this.getSolutions((postData || {}) as SubmitPostData);
+        return;
+      case "getQuickQuestion":
+        await this.getQuickQuestion((postData || {}) as QuestionPostData);
+        return;
+      case "submit":
+        await this.submit((postData || {}) as SubmitPostData);
+        return;
+      case "jumpFenbi":
+        this.jump((postData || {}) as JumpPostData);
+        return;
+      case "changeQuestionCount":
+        await this.changeQuestionCount(
+          (postData || {}) as ChangeQuestionCountPostData,
+        );
+        return;
+      case "answer":
+        this.studyTime((postData || {}) as AnswerPostData);
+        if (message.inc) {
+          await this.inc((postData || {}) as AnswerPostData);
+        }
+        return;
+      case "history":
+        await this.getHistory((postData || {}) as HistoryPostData);
+        return;
+      case "openInBrowser":
+        this.openInBrowser((postData || {}) as OpenInBrowserPostData);
+        return;
+      default:
+        return;
+    }
+  }
+
+  private postError(error: unknown) {
+    webview.postMessage({
+      command: "message",
+      data: { message: getErrorMessage(error) || "操作失败" },
     });
   }
 
   async getHistory({
-    category = "xingce",
+    category = SELECTENUM.XINGCE,
     count,
     categoryId,
-  }: { category?: string; count?: number; categoryId?: number } = {}) {
+  }: HistoryPostData = {}) {
     const config = getCategoryRouteConfig(category);
     const res = await getHistory({
       category: config.apiCategory,
       count: count || 15,
       categoryId: categoryId || undefined,
     });
+
     webview.postMessage({
       command: "history",
-      data: res.datas,
+      data: res.datas || ([] as HistoryExercise[]),
     });
   }
 
-  async pageInit(postData: any) {
-    const category = postData?.categoryId || "xingce";
+  async pageInit(postData: PageInitPostData) {
+    const category = postData.categoryId || SELECTENUM.XINGCE;
     const config = getCategoryRouteConfig(category);
     const cacheResult = await getCache(config.apiCategory);
-    const res = await getCategories(category);
+    const menu = await getCategories(category);
     const favoriteQuizLocationName =
       await this.getFavoriteQuizLocationName(category);
 
@@ -136,15 +207,13 @@ export default class WebviewHandle {
       command: "setting",
       data: settingConfig,
     });
-    // const len = (cacheResult.keypointIds || [])?.length;
-    // const lastKeypointIds = len > 0 ? [cacheResult.keypointIds[len - 1]] : [];
+
     webview.postMessage({
       command: "init",
-      // data: modifyArray(res, cacheResult?.keypointIds || []),
       data: {
         categoryId: category,
         favoriteQuizLocationName,
-        menu: res,
+        menu,
         cacheResult: cacheResult || {},
       },
     });
@@ -155,269 +224,214 @@ export default class WebviewHandle {
     });
   }
 
-  async changeCategory(postData: any) {
-    console.log("🚀 ~ WebviewHandle ~ changeCategory ~ postData:", postData);
-    const category = postData.categoryId;
+  async changeCategory(postData: ChangeCategoryPostData) {
+    const category = postData.categoryId || SELECTENUM.XINGCE;
     const config = getCategoryRouteConfig(category);
-    courseSetChange({ category: config.courseSetPrefix });
+    await courseSetChange({ category: config.courseSetPrefix });
   }
 
   async getFavoriteQuizLocationName(category?: string) {
     const courseSetPrefix = getFavoriteQuizCourseSetPrefix(category);
     try {
       const res = await getCourseSetFavoriteQuiz({ courseSetPrefix });
-      const favoriteQuizData = res?.data || res;
-      const currentQuizId = favoriteQuizData?.currentQuizVO?.quizId;
-      const favoriteQuizVO = favoriteQuizData?.favoriteQuizVO || [];
-      const locationName =
-        favoriteQuizVO.find((item: { id: number; name: string }) => {
+      const favoriteQuizData: FavoriteQuizResponseData = res.data || {
+        currentQuizVO: res.currentQuizVO,
+        favoriteQuizVO: res.favoriteQuizVO,
+      };
+      const currentQuizId = favoriteQuizData.currentQuizVO?.quizId;
+      return (
+        favoriteQuizData.favoriteQuizVO?.find((item) => {
           return item.id === currentQuizId;
-        })?.name || "";
-      return locationName;
-    } catch (error) {
+        })?.name || ""
+      );
+    } catch (_error) {
       return "";
     }
   }
 
-  async getQuestion({
-    category,
-    combineKey,
-    id,
-  }: {
-    category: string;
-    combineKey?: string;
-    id?: number;
-  }) {
-    let postCombinKey = combineKey || "";
+  async getQuestion(params: QuestionPostData) {
+    await this.loadQuestion(params, false);
+  }
 
-    if (!postCombinKey) {
-      const params = {
-        keypointId: id,
-      } as any;
-      if (isEssayCategory(category)) {
-        params.count = 1;
-      }
-      const res = await getExercisesId(category, params);
-      postCombinKey = res.key;
+  async getQuickQuestion(params: QuestionPostData) {
+    await this.loadQuestion(params, true);
+  }
+
+  private async loadQuestion(params: QuestionPostData, quickMode: boolean) {
+    const category = params.category || SELECTENUM.XINGCE;
+    let combineKey = params.combineKey || "";
+
+    if (!combineKey) {
+      const keyResult = quickMode
+        ? await getQuickExercisesId(category)
+        : await getExercisesId(category, { keypointId: params.id });
+      combineKey = keyResult.key || "";
+    }
+
+    if (!combineKey) {
+      throw new Error("获取练习 key 失败");
     }
 
     const exerciseResult = await getExercisesUrl({
       category,
-      combineKey: postCombinKey,
+      combineKey,
     });
 
-    if (exerciseResult?.code == -1) {
-      webview.postMessage({
-        command: "message",
-        data: { message: exerciseResult.message || "获取试题失败" },
-      });
-      return;
+    if (exerciseResult.code === -1) {
+      throw new Error(exerciseResult.message || "获取试题失败");
     }
 
-    const staticUrl = exerciseResult?.data?.staticUrl?.urls?.[0];
+    const staticUrl = getStaticUrl(exerciseResult);
+    if (!staticUrl) {
+      throw new Error("获取试题地址失败");
+    }
+
     const questionResult = await getQuestion(category, staticUrl);
+    void getCurrent().catch(() => undefined);
 
-    getCurrent();
+    attachUserAnswers(questionResult.questions, exerciseResult.data?.userAnswers);
 
-    if (exerciseResult?.data?.userAnswers) {
-      const userAnswers = exerciseResult?.data?.userAnswers || {};
-      (questionResult?.questions || []).forEach((item: any) => {
-        for (const key in userAnswers) {
-          if (key == item?.globalId) {
-            item["userAnswer"] = userAnswers?.[key]?.answer;
-          }
-        }
-      });
-    }
-
-    questionResult["exerciseId"] = exerciseResult?.data?.ancientExerciseId?.id;
-    questionResult["combinKey"] = postCombinKey;
+    const payload: QuestionPayload = {
+      ...questionResult,
+      exerciseId: exerciseResult.data?.ancientExerciseId?.id,
+      combineKey,
+      combinKey: combineKey,
+    };
 
     webview.postMessage({
       command: "getQuestion",
-      data: {
-        combineKey: postCombinKey,
-        ...questionResult,
-      },
+      data: payload,
     });
   }
 
-  async getQuickQuestion({
-    category,
-    combineKey,
-  }: {
-    category: string;
-    combineKey?: string;
-  }) {
-    let postCombinKey = combineKey || "";
-    console.log("getQuickQuestion", postCombinKey);
+  studyTime(params: AnswerPostData) {
+    if (!params.exerciseId) return;
 
-    if (!postCombinKey) {
-      const res = await getQuickExercisesId(category);
-      postCombinKey = res.key;
-    }
-
-    const exerciseResult = await getExercisesUrl({
-      category,
-      combineKey: postCombinKey,
-    });
-
-    if (exerciseResult?.code == -1) {
-      webview.postMessage({
-        command: "message",
-        data: { message: exerciseResult.message || "获取试题失败" },
-      });
-      return;
-    }
-
-    const staticUrl = exerciseResult?.data?.staticUrl?.urls?.[0];
-
-    const questionResult = await getQuestion(category, staticUrl);
-
-    getCurrent();
-
-    if (exerciseResult?.data?.userAnswers) {
-      const userAnswers = exerciseResult?.data?.userAnswers || {};
-      (questionResult?.questions || []).forEach((item: any) => {
-        for (const key in userAnswers) {
-          if (key == item?.globalId) {
-            item["userAnswer"] = userAnswers?.[key]?.answer;
-          }
-        }
-      });
-    }
-
-    questionResult["exerciseId"] = exerciseResult?.data?.ancientExerciseId?.id;
-    questionResult["combinKey"] = postCombinKey;
-
-    webview.postMessage({
-      command: "getQuestion",
-      data: {
-        combineKey: postCombinKey,
-        ...questionResult,
-      },
-    });
-  }
-
-  studyTime(params: { exerciseId: number; id: number; category: string }) {
     const config = getCategoryRouteConfig(params.category);
-    studyTime({
+    void studyTime({
       exerciseId: params.exerciseId,
-      // questionIds: [params.id],
       questionId: 0,
       startTime: Date.now(),
-      studyTime: 30000, // 30 seconds
+      studyTime: 30000,
       subType: 1,
       tikuPrefix: config.tikuPrefix,
-    });
+    }).catch(() => undefined);
   }
 
-  async inc(params: any) {
-    let answer = {
-      type: 201,
-      choice: String(params.answer),
-    } as any;
-    if (isEssayCategory(params.category)) {
-      answer = {
-        type: 204,
-        answer: params.answer,
-      };
+  async inc(params: AnswerPostData) {
+    if (!params.category || !params.combineKey || !params.globalId) {
+      throw new Error("答题参数缺失");
     }
+
+    const answer: FenbiAnswer = isEssayCategory(params.category)
+      ? {
+          type: 204,
+          answer: String(params.answer || ""),
+        }
+      : {
+          type: 201,
+          choice: String(params.answer),
+        };
+
     await incr(params.category, params.combineKey, {
-      answer: answer,
-      key: params.globalId,
-      time: Math.floor((Date.now() - params.startTime) / 1000),
+      answer,
+      key: String(params.globalId),
+      time: Math.floor((Date.now() - (params.startTime || Date.now())) / 1000),
     });
   }
 
-  async submit(params: { category: string; combineKey: string }) {
-    // await this.inc(params);
-    try {
-      const submitRes = await submit(params.category, params.combineKey);
-      if (submitRes.msg == "needPayment") {
-        webview.postMessage({
-          command: "message",
-          data: {
-            message:
-              "需要自行前往粉笔官网开通vip，与本插件无关，由于无VIP，申论后续功能暂无",
-          },
-        });
-        return;
-      }
-
-      const res = await getSolution(params.category, params.combineKey);
-      const solutionRes = await getSolutionQuestion(
-        res?.data?.staticUrl?.urls?.[0],
-        params.category,
-      );
-
-      (solutionRes?.solutions || []).forEach((item: any) => {
-        const userAnswers = res?.data?.userAnswers;
-        for (const key in userAnswers) {
-          if (key == item.globalId) {
-            item["userAnswer"] = userAnswers[key].answer;
-          }
-        }
-      });
-
-      solutionRes["correctCount"] =
-        (solutionRes?.solutions || []).filter((item: any) => {
-          return item?.userAnswer?.choice == item?.correctAnswer?.choice;
-        })?.length || 0;
-      solutionRes["questionCount"] = (solutionRes?.solutions || []).length;
-
-      webview.postMessage({
-        command: "solution",
-        data: solutionRes,
-      });
-    } catch (error) {
-      console.log("🚀 ~ WebviewHandle ~ submit ~ error:", error);
+  async submit(params: SubmitPostData) {
+    const category = params.category || SELECTENUM.XINGCE;
+    if (!params.combineKey) {
+      throw new Error("缺少练习 key，无法交卷");
     }
-  }
 
-  async getSolutions(postData: { category: string; combineKey: string }) {
-    console.log("🚀 ~ WebviewHandle ~ getSolution ~ postData:", postData);
-    const res = await getSolution(postData.category, postData.combineKey);
-    const solutionRes = await getSolutionQuestion(
-      res?.data?.staticUrl?.urls?.[0],
-      postData.category,
-    );
+    const submitRes = await submit(category, params.combineKey);
+    if (submitRes.msg === "needPayment") {
+      webview.postMessage({
+        command: "message",
+        data: {
+          message:
+            "需要自行前往粉笔官网开通vip，与本插件无关，由于无VIP，申论后续功能暂无",
+        },
+      });
+      return;
+    }
 
-    (solutionRes?.solutions || []).forEach((item: any) => {
-      const userAnswers = res?.data?.userAnswers;
-      for (const key in userAnswers) {
-        if (key == item.globalId) {
-          item["userAnswer"] = userAnswers[key].answer;
-        }
-      }
-    });
-
-    solutionRes["correctCount"] =
-      (solutionRes?.solutions || []).filter((item: any) => {
-        return item?.userAnswer?.choice == item?.correctAnswer?.choice;
-      })?.length || 0;
-    solutionRes["questionCount"] = (solutionRes?.solutions || []).length;
-
+    const solutionRes = await this.loadSolution(category, params.combineKey);
     webview.postMessage({
       command: "solution",
       data: solutionRes,
     });
   }
 
-  jump(params: { exerciseId: number; category: string }) {
-    const category = params.category || "xingce";
+  async getSolutions(postData: SubmitPostData) {
+    const category = postData.category || SELECTENUM.XINGCE;
+    if (!postData.combineKey) {
+      throw new Error("缺少练习 key，无法获取解析");
+    }
+
+    const solutionRes = await this.loadSolution(category, postData.combineKey);
+    webview.postMessage({
+      command: "solution",
+      data: solutionRes,
+    });
+  }
+
+  private async loadSolution(category: string, combineKey: string) {
+    const res = await getSolution(category, combineKey);
+    const staticUrl = getStaticUrl(res);
+    if (!staticUrl) {
+      throw new Error("获取解析地址失败");
+    }
+
+    const solutionRes: SolutionPayload = await getSolutionQuestion(
+      staticUrl,
+      category,
+    );
+
+    attachUserAnswers(solutionRes.solutions, res.data?.userAnswers);
+    solutionRes.correctCount = countCorrectAnswers(solutionRes.solutions);
+    solutionRes.questionCount = solutionRes.solutions?.length || 0;
+
+    return solutionRes;
+  }
+
+  jump(params: JumpPostData) {
+    if (!params.exerciseId) {
+      throw new Error("缺少练习 ID，无法打开粉笔页面");
+    }
+
+    const category = params.category || SELECTENUM.XINGCE;
     const url = vscode.Uri.parse(
       `https://www.fenbi.com/spa/tiku/report/exam/solution/${category}/${category}/${params.exerciseId}/2`,
     );
-    vscode.env.openExternal(url);
+    void vscode.env.openExternal(url);
   }
 
-  async changeQuestionCount(params: { questionCount: number }) {
-    const res = await changeQuestionCount(params);
+  async changeQuestionCount(params: ChangeQuestionCountPostData) {
+    if (!params.questionCount) {
+      throw new Error("请选择每组出题数量");
+    }
+
+    await changeQuestionCount({ questionCount: params.questionCount });
 
     webview.postMessage({
       command: "message",
       data: { message: "修改成功" },
     });
+  }
+
+  private openInBrowser(params: OpenInBrowserPostData) {
+    if (!params.url) {
+      throw new Error("缺少打开链接");
+    }
+
+    const url = vscode.Uri.parse(params.url);
+    if (url.scheme !== "https") {
+      throw new Error("只支持打开 https 链接");
+    }
+
+    void vscode.env.openExternal(url);
   }
 }

@@ -1,12 +1,8 @@
 import * as React from "react";
+import { FenbiSetting } from "../../shared/types";
 
 // Setting 类型
-export interface TSetting {
-  color?: string;
-  backgroundColor?: string;
-  categoryId?: string;
-  [key: string]: any;
-}
+export type TSetting = FenbiSetting;
 
 // 默认值
 const defaultSetting: TSetting = {
@@ -20,10 +16,10 @@ const defaultSetting: TSetting = {
 // Context
 const SettingContext = React.createContext<{
   setting: TSetting;
-  setSetting: (s: TSetting) => void;
+  setSetting: React.Dispatch<React.SetStateAction<TSetting>>;
 }>({
   setting: defaultSetting,
-  setSetting: () => {},
+  setSetting: () => undefined,
 });
 
 // Provider

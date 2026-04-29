@@ -1,14 +1,15 @@
 import * as React from "react";
 import { TMaterials, TQuestionItem, TSolutionItem } from "../types";
-import { Input, Radio, RadioChangeEvent } from "antd";
+import { Input } from "antd";
 import { radioMap } from "../utils/constant";
-import { ThemeContext } from "../context/themeContext";
+
+type ShenlunRenderItem = TQuestionItem | TSolutionItem;
 
 interface TShenlunItemProps {
-  data: TSolutionItem[];
+  data: ShenlunRenderItem[];
   materials: TMaterials[];
   index: number;
-  onChange: (e: string) => void;
+  onChange: (text: string, item: ShenlunRenderItem, index: number) => void;
 }
 
 const { TextArea } = Input;
@@ -20,14 +21,13 @@ export const ShenlunItem = (props: TShenlunItemProps) => {
       {(materials || []).length > 0 && (
         <div
           dangerouslySetInnerHTML={{
-            __html: materials?.[index].content,
+            __html: materials?.[index]?.content || "",
           }}
         ></div>
       )}
-      {(data || []).map((ele: TSolutionItem, index: number) => {
-        console.log("🚀 ~ ShenlunItem ~ ele:", ele);
+      {data.map((ele: ShenlunRenderItem, index: number) => {
         return (
-          <div className="question-item">
+          <div className="question-item" key={ele.globalId || ele.id || index}>
             <span>{index + 1}、</span>
             <span
               dangerouslySetInnerHTML={{
@@ -36,9 +36,10 @@ export const ShenlunItem = (props: TShenlunItemProps) => {
             ></span>
 
             <div className="answer-item">
-              {(ele.accessories || []).map((access: any, ind: number) => {
+              {(ele.accessories || []).map((access, ind: number) => {
                 return (
                   <TextArea
+                    key={`${ele.globalId || ele.id || index}-${ind}`}
                     defaultValue={ele?.userAnswer?.answer || ""}
                     maxLength={access?.wordCount || undefined}
                     allowClear
@@ -46,14 +47,14 @@ export const ShenlunItem = (props: TShenlunItemProps) => {
                     showCount
                     rows={6}
                     onBlur={(e) => {
-                      onChange(e.target.value);
+                      onChange(e.target.value, ele, index);
                     }}
                   />
                 );
               })}
             </div>
 
-            {ele?.solution && (
+            {"solution" in ele && ele.solution && (
               <div className="solution-container">
                 <p>
                   <span

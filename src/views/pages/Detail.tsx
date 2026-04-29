@@ -1,11 +1,12 @@
 import * as React from "react";
-import { Button, Space, Spin, Modal, message } from "antd";
+import { Button, Spin, Modal } from "antd";
+import { RadioChangeEvent } from "antd/es/radio";
 import { groupByMaterialIndexesTo2DArray } from "../utils/analyze";
 import {
-  TCacheData,
   TQuestionData,
   TQuestionItem,
   TSolutionData,
+  TSolutionItem,
 } from "../types";
 import { QuestionItem } from "../components/question-item";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -17,72 +18,36 @@ import { ShenlunItem } from "../components/shenlun-item";
 import CanvasDrawing from "../components/canvas-drawing";
 import "../style/detail.less";
 import { isEssayCategory } from "../utils/constant";
-
-interface TLastAnswerRecord {
-  // lastTime: number;
-  lastCount: number | null;
-  lastAnswer: number | null;
-  lastQuestionId: number | null | undefined;
-}
+import { useVscodeMessage } from "../hooks/useVscodeMessage";
 
 const vscode = getVscodeApi();
 let modalIs = false;
+
+interface DetailLocationState {
+  id?: number;
+  type?: number;
+  combineKey?: string;
+}
+
 export const Detail = () => {
   const [modal, contextHolder] = Modal.useModal();
   const [isFirst, setFirst] = React.useState(false);
   const [startTime, setStartTime] = React.useState(0);
-  // const [showDraw, setShowDraw] = React.useState(false);
-  const [lastAnswerRecord, setLastAnswerRecord] =
-    React.useState<TLastAnswerRecord>({
-      // lastTime: 0,
-      lastCount: null,
-      lastAnswer: null,
-      lastQuestionId: null,
-    });
   const [loading, setLoading] = React.useState(true);
 
   const [page, setPage] = React.useState<number>(1);
   const [questionData, setQuestionData] = React.useState<TQuestionData>();
   const [solutionData, setSolutionData] = React.useState<TSolutionData>();
-  const [cacheData, setCacheData] = React.useState<TCacheData>();
-  const { setting, setSetting } = useSetting();
+  const { setting } = useSetting();
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { id = "", type = 1 } = location.state || {};
-  const defaultCombineKey = location.state?.combineKey || "";
+  const { id, type = 1, combineKey: defaultCombineKey = "" } =
+    ((location.state || {}) as DetailLocationState);
   const [combineKey, setCombineKey] = React.useState(defaultCombineKey);
 
   React.useEffect(() => {
     getQuestion({ category: setting.categoryId, id, combineKey, type });
-  }, []);
-
-  React.useEffect(() => {
-    window.addEventListener("message", (event: any) => {
-      const _message = event.data;
-      setLoading(false);
-
-      if (_message.command === "pageCache") setCacheData(_message.data);
-      if (_message.command === "getQuestion") {
-        setQuestionData(_message.data);
-        setCombineKey(_message.data.combineKey);
-      }
-      if (_message.command === "message") {
-        if (modalIs) return;
-        modal.error({
-          title: "提示",
-          content: _message.data.message,
-          onOk: () => {
-            modalIs = false;
-          },
-        });
-        modalIs = true;
-      }
-      if (_message.command === "solution") {
-        setPage(2);
-        setSolutionData(_message.data);
-      }
-    });
   }, []);
 
   React.useEffect(() => {
@@ -122,32 +87,32 @@ export const Detail = () => {
     navigate(-1);
   };
 
-  const onRaioChange = (e: any, item: TQuestionItem, index: number) => {
+  const onRaioChange = (e: RadioChangeEvent, item: TQuestionItem) => {
     vscode.postMessage({
       command: "answer",
       inc: true,
       postData: {
         ...item,
         startTime: startTime,
-        // inc 参数
         combineKey: combineKey,
         category: setting.categoryId,
         answer: e.target.value,
         exerciseId: questionData?.exerciseId,
-        // ...params,
       },
     });
   };
 
-  const onShenlunChange = (text: string) => {
+  const onShenlunChange = (text: string, item: TQuestionItem | TSolutionItem) => {
     vscode.postMessage({
       command: "answer",
       inc: true,
       postData: {
+        ...item,
         startTime: startTime,
         combineKey: combineKey,
         category: setting.categoryId,
         answer: text,
+        exerciseId: questionData?.exerciseId,
       },
     });
   };
@@ -160,10 +125,7 @@ export const Detail = () => {
         vscode.postMessage({
           command: "submit",
           postData: {
-            // ...lastAnswerRecord,
-            // 初始时间
             startTime: startTime,
-            // exerciseId: questionData?.exerciseId,
             combineKey: combineKey,
             category: setting.categoryId,
           },
@@ -190,12 +152,33 @@ export const Detail = () => {
     });
   };
 
-  const obj: { [key: string]: any[] } = {
-    1: questions,
-    2: solutions,
-  };
+  const list: Array<TQuestionItem[] | TSolutionItem[]> =
+    page === 1 ? questions : solutions;
 
-  const list = obj[page];
+  useVscodeMessage((message) => {
+    setLoading(false);
+
+    if (message.command === "getQuestion") {
+      const data = message.data as TQuestionData;
+      setQuestionData(data);
+      setCombineKey(data.combineKey || "");
+    }
+    if (message.command === "message") {
+      if (modalIs) return;
+      modal.error({
+        title: "提示",
+        content: (message.data as { message?: string })?.message || "",
+        onOk: () => {
+          modalIs = false;
+        },
+      });
+      modalIs = true;
+    }
+    if (message.command === "solution") {
+      setPage(2);
+      setSolutionData(message.data as TSolutionData);
+    }
+  });
 
   return (
     <div className="detail_page">
@@ -229,7 +212,7 @@ export const Detail = () => {
           <div style={{ height: "10px" }}></div>
 
           <div>
-            {(list || []).map((item: any, index: number) => {
+            {list.map((item, index) => {
               if (isEssayCategory(setting.categoryId)) {
                 return (
                   <ShenlunItem
@@ -271,4 +254,3 @@ export const Detail = () => {
     </div>
   );
 };
-

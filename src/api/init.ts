@@ -3,9 +3,11 @@ import { onDidChangeConfigurationCommand } from "../commands/onDidChangeConfigur
 import { runInterval } from "../utils/func";
 import { globalState } from "../utils/globalState";
 
-export const init = (customTreeDataProvider: any) => {
-  const config = vscode.workspace.getConfiguration("fenbiTools");
+interface RefreshableTreeDataProvider {
+  refresh(): void;
+}
 
+export const init = (customTreeDataProvider: RefreshableTreeDataProvider) => {
   const onRefresh = () => {
     customTreeDataProvider.refresh();
   };

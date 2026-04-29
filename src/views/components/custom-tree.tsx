@@ -1,12 +1,13 @@
 import { Tree } from "antd";
+import { DataNode } from "antd/es/tree";
 import * as React from "react";
 import { DownOutlined } from "@ant-design/icons";
 
-export function CustomTree({ treeData }: { treeData: any[] }) {
-  const [expandedKeys, setExpandedKeys] = React.useState<any[]>([]);
+export function CustomTree({ treeData }: { treeData: DataNode[] }) {
+  const [expandedKeys, setExpandedKeys] = React.useState<React.Key[]>([]);
 
-  const onSelect = (keys: any, selectedNodes: any) => {
-    const key = selectedNodes?.node?.key;
+  const onSelect = (_keys: React.Key[], selectedNodes: { node?: DataNode }) => {
+    const key = selectedNodes.node?.key;
     if (!selectedNodes?.node?.children) return;
 
     setExpandedKeys((prev) => {

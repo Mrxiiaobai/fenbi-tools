@@ -2,10 +2,11 @@ import { Button, Flex } from "antd";
 import * as React from "react";
 import * as dayjs from "dayjs";
 import { useNavigate } from "react-router-dom";
+import { HistoryExercise } from "../types";
 
 export const HistoryItem = (props: {
-  data: any;
-  goExercise: (data: any) => void;
+  data: HistoryExercise;
+  goExercise: (data: HistoryExercise) => void;
 }) => {
   const { data, goExercise } = props;
 

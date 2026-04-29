@@ -1,12 +1,10 @@
 import * as vscode from "vscode";
-import { globalState } from "./globalState";
+import * as path from "path";
 import { mainConfig } from "../config";
-
-const cheerio = require("cheerio");
-const path = require("path");
+import { CategoryNode } from "../shared/types";
 
 export const interval = () => {
-  let timerId: any = null;
+  let timerId: NodeJS.Timeout | null = null;
 
   function start(callback: () => void, delay: number) {
     stop(); // 停止之前的计时器
@@ -27,95 +25,6 @@ export const interval = () => {
 
 export const runInterval = interval();
 
-const getContent = ($: any, element: any) => {
-  let content = "";
-  const childElements = $(element).contents();
-  childElements.each(
-    (childIndex: any, childElement: { nodeType: number; tagName: string }) => {
-      if (childElement.nodeType === 3) {
-        // 文本节点
-        content += $(childElement).text();
-      } else if (childElement.tagName === "a") {
-        // a标签节点
-        content += $(childElement).text();
-      }
-    }
-  );
-  return content;
-};
-
-export const analyze = (htmlContent: string) => {
-  const $ = cheerio.load(htmlContent);
-  const containerElement = $("div.woo-box-flex");
-
-  if (!containerElement || !htmlContent) {
-    vscode.window.showInformationMessage("cookie过期，请重新设置cookie");
-    return;
-  }
-  const listItem = $(containerElement).find(
-    'div[action-type="feed_list_item"]'
-  );
-
-  const topicElement = $(containerElement).find("div.card-topic-lead");
-
-  let arr: any[] = [];
-
-  listItem.each((index: any, element: any) => {
-    const nickName = $(element).find("a.name").text().trim();
-
-    let descriptions = "";
-    let content = "";
-
-    const descriptionElements =
-      $($(element).find("div.from")?.[0]).find("a") || [];
-
-    const contentElements =
-      $($(element).find("p[node-type=feed_list_content]")?.[0]) || [];
-
-    const contentFullElements =
-      $($(element).find("p[node-type=feed_list_content_full]")?.[0]) || [];
-
-    const forwardElement = $(element).find(
-      "a[action-type=feed_list_forward]"
-    )?.[0];
-
-    const commentElement = $(element).find(
-      "a[action-type=feed_list_comment]"
-    )?.[0];
-    const likeElement = $(element).find("a[action-type=feed_list_like]")?.[0];
-
-    if (contentFullElements.length > 0) {
-      content = getContent($, contentFullElements);
-    } else {
-      content = getContent($, contentElements);
-    }
-
-    descriptionElements.each((index: any, element: any) => {
-      descriptions += $(element)?.text()?.trim() + "  ";
-    });
-
-    const forward = $(forwardElement)?.text()?.trim() || 0;
-    const comment = $(commentElement)?.text()?.trim() || 0;
-    const like = $(likeElement)?.text()?.trim() || 0;
-
-    arr.push({
-      nickName,
-      descriptions,
-      content,
-      forward,
-      comment,
-      like,
-    });
-  });
-
-  const topic = $(topicElement)?.text()?.trim();
-
-  return {
-    topic,
-    data: arr,
-  };
-};
-
 export const getScriptPath = (extensionPath: string) => {
   const scriptPath = vscode.Uri.file(
     path.join(extensionPath, mainConfig.jsPath)
@@ -123,7 +32,7 @@ export const getScriptPath = (extensionPath: string) => {
   return scriptPath;
 };
 
-export const templateHtml = (scriptUri: any) => {
+export const templateHtml = (scriptUri: vscode.Uri) => {
   return `<!DOCTYPE html>
   <html lang="en">
     <head>
@@ -147,8 +56,12 @@ export const getScriptUri = (
   return scriptUri;
 };
 
-export const modifyArray = (arr: any[], cacheKey: number[], level = 1) => {
-  return arr.map((item: any) => {
+export const modifyArray = (
+  arr: CategoryNode[],
+  cacheKey: Array<number | string>,
+  level = 1,
+) => {
+  return arr.map((item) => {
     // 修改属性名
     const newItem = {
       ...item,
@@ -189,46 +102,4 @@ export const modifyArray = (arr: any[], cacheKey: number[], level = 1) => {
 
     return newItem;
   });
-};
-
-/**
- * 根据 cards 的顺序，生成一个 materialsForRender 数组
- * 让 materialsForRender[index] === 当前题目的展示图片（仅首次出现时才有）
- */
-export const buildMaterialsForQuestions = (cards: any, materials: any[]) => {
-  // 方便快速查询 globalId → content
-  const materialContentMap = new Map(
-    materials.map((m) => [m.globalId, m.content])
-  );
-
-  const usedMaterialKeys = new Set(); // 已经展示过的素材
-  const materialsForRender: any[] = []; // 最终用于页面渲染的 materials[index]
-
-  const questions = cards?.children[0].children; // 题目顺序数组
-
-  questions.forEach((q: { materialKeys: any }, index: number) => {
-    const keys = q.materialKeys;
-
-    if (!keys || keys.length === 0) {
-      materialsForRender[index] = null;
-      return;
-    }
-
-    const key = keys[0];
-
-    // 第一次出现 → 允许展示图片
-    if (!usedMaterialKeys.has(key)) {
-      usedMaterialKeys.add(key);
-
-      materialsForRender[index] = {
-        key,
-        content: materialContentMap.get(key) || null,
-      };
-    } else {
-      // 后续重复出现 → 不展示图
-      materialsForRender[index] = null;
-    }
-  });
-
-  return materialsForRender;
 };

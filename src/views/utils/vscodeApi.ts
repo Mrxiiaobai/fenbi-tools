@@ -1,6 +1,8 @@
-declare const acquireVsCodeApi: any;
+import { VscodeApi } from "../../shared/types";
 
-let vscode: any = null;
+declare const acquireVsCodeApi: () => VscodeApi;
+
+let vscode: VscodeApi | null = null;
 
 export const getVscodeApi = () => {
   if (!vscode) {

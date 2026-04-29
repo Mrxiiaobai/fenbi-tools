@@ -9,7 +9,6 @@ export const QuestionCount = (props: {
   const [currentIndex, setCurrentIndex] = React.useState<number>(-1);
 
   const onRaioChange = (e: RadioChangeEvent) => {
-    console.log("onRaioChange ~ e:", e);
     setCurrentIndex(e.target.value);
   };
 
@@ -30,7 +29,6 @@ export const QuestionCount = (props: {
         open={open}
         title="设置"
         onOk={() => {
-          console.log("🚀 ~ currentIndex:", currentIndex);
           if (currentIndex > -1) {
             onChange && onChange(currentIndex);
             onCancel();

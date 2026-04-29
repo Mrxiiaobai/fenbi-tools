@@ -1,21 +1,30 @@
 import * as vscode from "vscode";
-import { globalState } from "./globalState";
-import { analyze, templateHtml } from "./func";
-// import { getHotDetail } from "./service";
+import * as path from "path";
+import { templateHtml } from "./func";
 import { mainConfig } from "../config";
+import { WebviewRequestMessage } from "../shared/types";
 
-const path = require("path");
+type WebviewPanelLike = vscode.WebviewView | vscode.WebviewPanel;
 
 export class Webview {
-  panel: any;
+  private panel?: WebviewPanelLike;
+
+  private getPanel() {
+    if (!this.panel) {
+      throw new Error("Webview has not been initialized");
+    }
+
+    return this.panel;
+  }
 
   setWebviewHtml(extensionPath: string) {
     const scriptPath = vscode.Uri.file(
       path.join(extensionPath, mainConfig.jsPath)
     );
 
-    const scriptUri = this.panel.webview.asWebviewUri(scriptPath);
-    this.panel.webview.html = templateHtml(scriptUri);
+    const panel = this.getPanel();
+    const scriptUri = panel.webview.asWebviewUri(scriptPath);
+    panel.webview.html = templateHtml(scriptUri);
   }
 
   createSideInit(webviewView: vscode.WebviewView, extensionPath: string) {
@@ -26,23 +35,22 @@ export class Webview {
 
     this.setWebviewHtml(extensionPath);
 
-    // this.onDidChangeVisibility(() => {
-    //   console.log("webviewView.onDidChangeVisibility", webviewView.visible);
-    // });
-
     return webviewView;
   }
 
   onDidChangeVisibility(callback: () => void) {
-    this.panel.onDidChangeVisibility(callback);
+    const panel = this.getPanel();
+    if ("onDidChangeVisibility" in panel) {
+      panel.onDidChangeVisibility(callback);
+    }
   }
 
   onDidDispose(callback: () => void) {
-    this.panel.onDidDispose(callback);
+    this.getPanel().onDidDispose(callback);
   }
 
-  onDidReceiveMessage(callback: (message: { [key: string]: any }) => void) {
-    this.panel.webview.onDidReceiveMessage(callback);
+  onDidReceiveMessage(callback: (message: WebviewRequestMessage) => void) {
+    return this.getPanel().webview.onDidReceiveMessage(callback);
   }
 
   createInit(extensionPath: string, webviewId: string, webviewTitle?: string) {
@@ -60,9 +68,9 @@ export class Webview {
     return this.panel;
   }
 
-  postMessage({ command, data }: { command: string; data: any }) {
+  postMessage({ command, data }: { command: string; data: unknown }) {
     setTimeout(() => {
-      this.panel.webview.postMessage({
+      this.getPanel().webview.postMessage({
         command,
         data,
       });

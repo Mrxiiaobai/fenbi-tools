@@ -1,50 +1,14 @@
-export type TQuestionItem = {
-  id: number;
-  content: string;
-  material: number[] | null;
-  type: number;
-  difficulty: number;
-  createdTime: number;
-  shortSource: null;
-  accessories: {
-    options: string[];
-    type: 101 | 102 | 210;
-  }[];
-  correctAnswer: { choice: string; type: 101 | 102 | 210 | 204 } | null;
-  hasVideo: number;
-  materialIndexes: number | null;
-  userAnswer: { choice?: string; type: number; answer?: string };
-};
+import type { MaterialData } from "../../shared/types";
 
-export type TSolutionItem = TQuestionItem & {
-  solution: string;
-};
+export type {
+  CacheData as TCacheData,
+  FenbiSetting as TSetting,
+  HistoryExercise,
+  QuestionItem as TQuestionItem,
+  QuestionPayload as TQuestionData,
+  SolutionItem as TSolutionItem,
+  SolutionPayload as TSolutionData,
+  VscodeHostMessage,
+} from "../../shared/types";
 
-export type TCacheData = {
-  combineKey: string;
-  exerciseId: number;
-  keypointIds: number[];
-  sheetType: number;
-};
-
-export type TMaterials = {
-  content: string;
-};
-
-export type TQuestionData = {
-  exerciseId: number;
-  questions: TQuestionItem[];
-  materials: TMaterials[];
-};
-
-export type TSolutionData = TQuestionData & {
-  solutions: TSolutionItem[];
-  questionCount: number;
-  correctCount: number;
-};
-
-export type TSetting = {
-  color: string;
-  backgroundColor: string;
-  fontSize?: number;
-};
+export type TMaterials = MaterialData | null;

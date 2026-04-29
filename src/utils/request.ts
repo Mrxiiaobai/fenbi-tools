@@ -1,29 +1,50 @@
 import * as vscode from "vscode";
-const https = require("https");
+import * as https from "https";
+import { RequestMethod } from "../shared/types";
 
-const isJSON = (data: any) => {
+export class FenbiRequestError extends Error {
+  public readonly code: string;
+  public readonly statusCode?: number;
+
+  constructor(message: string, code = "REQUEST_ERROR", statusCode?: number) {
+    super(message);
+    this.name = "FenbiRequestError";
+    this.code = code;
+    this.statusCode = statusCode;
+  }
+}
+
+const parseResponseBody = (data: string): unknown => {
+  if (!data) return null;
+
   try {
-    JSON.parse(data);
-    return true;
-  } catch (error) {
-    return false;
+    return JSON.parse(data);
+  } catch (_error) {
+    return data;
   }
 };
 
-const ajax = (
-  methods: "POST" | "GET" | "FORM" | "PUT" | "DELETE",
+const ajax = <TResponse = unknown>(
+  methods: RequestMethod,
   url: string,
-  params?: any,
-  headers?: any,
-) => {
+  params?: unknown,
+  headers?: Record<string, string>,
+): Promise<TResponse> => {
   const parsedUrl = new URL(url);
   const config = vscode.workspace.getConfiguration("fenbiTools");
   if (!config.cookie) {
-    vscode.window.showErrorMessage("未设置 cookie");
-    return;
+    const error = new FenbiRequestError("未设置 cookie", "MISSING_COOKIE");
+    vscode.window.showErrorMessage(error.message);
+    return Promise.reject(error);
   }
 
-  const options = {
+  const options: {
+    method: RequestMethod;
+    hostname: string;
+    port: string | number;
+    path: string;
+    headers: Record<string, string>;
+  } = {
     method: "GET",
     hostname: parsedUrl.hostname,
     port: parsedUrl.port || 443, // 如果 URL 中没有指定端口号，默认为 443
@@ -35,26 +56,42 @@ const ajax = (
     },
   };
   if (methods) options.method = methods == "FORM" ? "POST" : methods;
-  return new Promise<any>((resolve, reject) => {
-    const req = https.request(options, (res: any) => {
+  return new Promise<TResponse>((resolve, reject) => {
+    const req = https.request(options, (res) => {
       let data = "";
       res.on("data", (chunk: string) => {
         data += chunk;
       });
       res.on("end", () => {
-        try {
-          const result = isJSON(data) ? JSON.parse(data) : data;
-          resolve(result);
-        } catch (err) {
-          console.error(err);
-          vscode.window.showErrorMessage(`${err}`);
+        const result = parseResponseBody(data);
+        const statusCode = res.statusCode || 0;
+
+        if (statusCode < 200 || statusCode >= 300) {
+          const error = new FenbiRequestError(
+            `请求失败：HTTP ${statusCode}`,
+            "HTTP_ERROR",
+            statusCode,
+          );
+          vscode.window.showErrorMessage(error.message);
+          reject(error);
+          return;
         }
+
+        resolve(result as TResponse);
       });
     });
 
-    req.on("error", (error: any) => {
-      reject(error);
-      vscode.window.showErrorMessage(`${error}`);
+    req.setTimeout(15000, () => {
+      req.destroy(new FenbiRequestError("请求超时", "TIMEOUT"));
+    });
+
+    req.on("error", (error: Error) => {
+      const requestError =
+        error instanceof FenbiRequestError
+          ? error
+          : new FenbiRequestError(error.message, "NETWORK_ERROR");
+      reject(requestError);
+      vscode.window.showErrorMessage(requestError.message);
     });
 
     if (methods === "POST" || methods === "PUT") {
@@ -72,9 +109,14 @@ const ajax = (
 };
 
 // 将 params 转换为表单格式的辅助函数
-const toUrlEncoded = (obj: any) => {
+const toUrlEncoded = (obj: unknown) => {
+  if (!obj || typeof obj !== "object") return "";
+
   return Object.keys(obj)
-    .map((key) => encodeURIComponent(key) + "=" + encodeURIComponent(obj[key]))
+    .map((key) => {
+      const value = (obj as Record<string, unknown>)[key];
+      return encodeURIComponent(key) + "=" + encodeURIComponent(String(value));
+    })
     .join("&");
 };
 

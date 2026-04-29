@@ -1,11 +1,11 @@
 import * as React from "react";
-import { Button, Space, Spin, Modal, message } from "antd";
+import { Button, Spin, Modal } from "antd";
 import { groupByMaterialIndexesTo2DArray } from "../utils/analyze";
 import {
-  TCacheData,
   TQuestionData,
   TQuestionItem,
   TSolutionData,
+  TSolutionItem,
 } from "../types";
 import { QuestionItem } from "../components/question-item";
 import { useNavigate, useLocation } from "react-router-dom";
@@ -14,43 +14,35 @@ import { useSetting } from "../components/hooks";
 import { getVscodeApi } from "../utils/vscodeApi";
 import { ShenlunItem } from "../components/shenlun-item";
 
-// import CanvasDrawing from "../components/canvas-drawing";
 import "../style/detail.less";
 import { isEssayCategory } from "../utils/constant";
-
-interface TLastAnswerRecord {
-  // lastTime: number;
-  lastCount: number | null;
-  lastAnswer: number | null;
-  lastQuestionId: number | null | undefined;
-}
+import { useVscodeMessage } from "../hooks/useVscodeMessage";
 
 const vscode = getVscodeApi();
 let modalIs = false;
+
+const noopQuestionChange = () => undefined;
+
+interface AnswerLocationState {
+  id?: number;
+  type?: number;
+  combineKey?: string;
+}
+
 export const Answer = () => {
   const [modal, contextHolder] = Modal.useModal();
-  const [isFirst, setFirst] = React.useState(false);
-  const [startTime, setStartTime] = React.useState(0);
-  // const [showDraw, setShowDraw] = React.useState(false);
-  const [lastAnswerRecord, setLastAnswerRecord] =
-    React.useState<TLastAnswerRecord>({
-      // lastTime: 0,
-      lastCount: null,
-      lastAnswer: null,
-      lastQuestionId: null,
-    });
+  const [startTime] = React.useState(() => Date.now());
   const [loading, setLoading] = React.useState(true);
 
-  const [page, setPage] = React.useState<number>(1);
+  const page = 1;
   const [questionData, setQuestionData] = React.useState<TQuestionData>();
   const [solutionData, setSolutionData] = React.useState<TSolutionData>();
-  const [cacheData, setCacheData] = React.useState<TCacheData>();
-  const { setting, setSetting } = useSetting();
+  const { setting } = useSetting();
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { id = "", type = 1 } = location.state || {};
-  const defaultCombineKey = location.state?.combineKey || "";
+  const { id, type = 1, combineKey: defaultCombineKey = "" } =
+    ((location.state || {}) as AnswerLocationState);
   const [combineKey, setCombineKey] = React.useState(defaultCombineKey);
 
   React.useEffect(() => {
@@ -59,34 +51,6 @@ export const Answer = () => {
       id,
       combineKey: combineKey,
       type,
-    });
-  }, []);
-
-  React.useEffect(() => {
-    window.addEventListener("message", (event: any) => {
-      const _message = event.data;
-      setLoading(false);
-
-      // if (_message.command === "pageCache") setCacheData(_message.data);
-      if (_message.command === "getQuestion") {
-        setQuestionData(_message.data);
-        setCombineKey(_message.data.combineKey);
-      }
-      if (_message.command === "message") {
-        if (modalIs) return;
-        modal.error({
-          title: "提示",
-          content: _message.data.message,
-          onOk: () => {
-            modalIs = false;
-          },
-        });
-        modalIs = true;
-      }
-      if (_message.command === "solution") {
-        // setPage(2);
-        setSolutionData(_message.data);
-      }
     });
   }, []);
 
@@ -102,13 +66,6 @@ export const Answer = () => {
     type?: number;
   }) => {
     setLoading(true);
-    // if (type == 2) {
-    //   vscode.postMessage({
-    //     command: "getQuickQuestion",
-    //     postData: { category, combineKey },
-    //   });
-    //   return;
-    // }
     vscode.postMessage({
       command: "getSolution",
       postData: { type, category, id, combineKey },
@@ -119,15 +76,17 @@ export const Answer = () => {
     navigate(-1);
   };
 
-  const onShenlunChange = (text: string) => {
+  const onShenlunChange = (text: string, item: TQuestionItem | TSolutionItem) => {
     vscode.postMessage({
       command: "answer",
       inc: true,
       postData: {
+        ...item,
         startTime: startTime,
         combineKey: combineKey,
         category: setting.categoryId,
         answer: text,
+        exerciseId: solutionData?.exerciseId || questionData?.exerciseId,
       },
     });
   };
@@ -141,13 +100,36 @@ export const Answer = () => {
       command: "jumpFenbi",
       postData: {
         category: setting.categoryId,
-        exerciseId: questionData?.exerciseId,
+        exerciseId: solutionData?.exerciseId || questionData?.exerciseId,
       },
     });
   };
 
   const list = solutions;
-  console.log("🚀 ~ Answer ~ list:", list);
+
+  useVscodeMessage((message) => {
+    setLoading(false);
+
+    if (message.command === "getQuestion") {
+      const data = message.data as TQuestionData;
+      setQuestionData(data);
+      setCombineKey(data.combineKey || "");
+    }
+    if (message.command === "message") {
+      if (modalIs) return;
+      modal.error({
+        title: "提示",
+        content: (message.data as { message?: string })?.message || "",
+        onOk: () => {
+          modalIs = false;
+        },
+      });
+      modalIs = true;
+    }
+    if (message.command === "solution") {
+      setSolutionData(message.data as TSolutionData);
+    }
+  });
 
   return (
     <div className="detail_page">
@@ -168,7 +150,7 @@ export const Answer = () => {
           <div style={{ height: "10px" }}></div>
 
           <div>
-            {(list || []).map((item: any, index: number) => {
+            {list.map((item: TSolutionItem[], index: number) => {
               if (isEssayCategory(setting.categoryId)) {
                 return (
                   <ShenlunItem
@@ -183,7 +165,7 @@ export const Answer = () => {
               return (
                 <QuestionItem
                   key={`${page}-${index}`}
-                  onChange={() => {}}
+                  onChange={noopQuestionChange}
                   data={item}
                   index={index}
                   materials={questionData?.materials || []}
@@ -198,4 +180,3 @@ export const Answer = () => {
     </div>
   );
 };
-

@@ -1,6 +1,6 @@
 import * as React from "react";
-import { Spin, Modal, message, Select, Button, Flex, Radio } from "antd";
-import { TCacheData, TSetting } from "../types";
+import { Spin, message, Select, Button, Flex, Radio } from "antd";
+import { HistoryExercise, TSetting } from "../types";
 import { QuestionCount } from "../components/question-count";
 import { CustomTree } from "../components/custom-tree";
 import { HistoryCard } from "../components/history-card";
@@ -14,6 +14,8 @@ import {
 } from "../utils/constant";
 import { getVscodeApi } from "../utils/vscodeApi";
 import { modifyArrayToTree } from "../utils/modifyArray";
+import { useVscodeMessage } from "../hooks/useVscodeMessage";
+import { CategoryNode } from "../../shared/types";
 
 const vscode = getVscodeApi();
 
@@ -27,16 +29,15 @@ const isCareerCategory = (category?: string) => {
 };
 
 export const Home = () => {
-  const [modal, contextHolder] = Modal.useModal();
-  const [messageApi, messageHoder] = message.useMessage();
-  const [historyList, setHistoryList] = React.useState<any>([]);
+  const [messageApi, messageHolder] = message.useMessage();
+  const [historyList, setHistoryList] = React.useState<HistoryExercise[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [favoriteQuizLocationName, setFavoriteQuizLocationName] =
     React.useState("");
 
-  const [treeData, setTreeData] = React.useState([]);
-  const [cacheData, setCacheData] = React.useState<TCacheData>();
-  // const [setting, setSetting] = React.useState<TSetting>({} as TSetting);
+  const [treeData, setTreeData] = React.useState<
+    ReturnType<typeof modifyArrayToTree>
+  >([]);
   const { setting, setSetting } = useSetting();
 
   const navigate = useNavigate();
@@ -46,34 +47,10 @@ export const Home = () => {
     const categoryConfig = getCategoryRouteConfig(category);
     pageInit({ categoryId: category });
     getHistory({ count: 15, categoryId: categoryConfig.historyCategoryId, category });
-    window.addEventListener("message", (event: any) => {
-      const message = event.data;
-      setLoading(false);
-
-      if (message.command === "setting") setTheme(message.data);
-      if (message.command === "init") {
-        const categoryId = message.data.categoryId || setting.categoryId;
-        setFavoriteQuizLocationName(message.data.favoriteQuizLocationName || "");
-        const menu = message.data.menu;
-        const cacheResult = message.data.cacheResult;
-        const _data = modifyArrayToTree(menu, cacheResult || {}, treeClick);
-        setTreeData(_data as any);
-      }
-      if (message.command === "pageCache") {
-        setCacheData(message.data);
-      }
-      if (message.command === "message") {
-        pageInit({ categoryId: setting.categoryId });
-        messageApi.info(message.data.message);
-      }
-      if (message.command === "history") {
-        setHistoryList(message.data);
-      }
-    });
   }, []);
 
   const setTheme = (theme: TSetting) => {
-    setSetting((prev: any) => ({ ...prev, ...theme }));
+    setSetting((prev) => ({ ...prev, ...theme }));
 
     document.documentElement.style.setProperty(
       "--primary-color",
@@ -89,14 +66,14 @@ export const Home = () => {
     );
   };
 
-  const pageInit = (postData?: any) => {
+  const pageInit = (postData?: { categoryId?: string }) => {
     vscode.postMessage({
       command: "pageInit",
       postData,
     });
   };
 
-  const treeClick = (e: any, cacheResult: any) => {
+  const treeClick = (e: { id: number | string }, cacheResult: { keypointIds?: Array<number | string>; combineKey?: string }) => {
     const key = e.id;
 
     setLoading(true);
@@ -184,7 +161,7 @@ export const Home = () => {
       categoryId: categoryConfig.historyCategoryId,
       category: categoryId,
     });
-    setSetting((prev: any) => ({ ...prev, categoryId }));
+    setSetting((prev) => ({ ...prev, categoryId }));
   };
 
   const onChangeCategory = (e: string) => {
@@ -197,6 +174,36 @@ export const Home = () => {
   const mainCategoryValue = isCareerCategory(currentCategory)
     ? SELECTENUM.SYZC
     : currentCategory;
+
+  useVscodeMessage(
+    React.useCallback(
+      (message) => {
+        setLoading(false);
+
+        if (message.command === "setting") {
+          setTheme((message.data || {}) as TSetting);
+        }
+        if (message.command === "init") {
+          const data = message.data as {
+            favoriteQuizLocationName?: string;
+            menu?: CategoryNode[];
+            cacheResult?: { keypointIds?: Array<number | string>; combineKey?: string };
+          };
+          setFavoriteQuizLocationName(data.favoriteQuizLocationName || "");
+          const _data = modifyArrayToTree(data.menu || [], data.cacheResult || {}, treeClick);
+          setTreeData(_data);
+        }
+        if (message.command === "message") {
+          pageInit({ categoryId: setting.categoryId });
+          messageApi.info((message.data as { message?: string })?.message || "");
+        }
+        if (message.command === "history") {
+          setHistoryList((message.data as HistoryExercise[]) || []);
+        }
+      },
+      [messageApi, setting.categoryId],
+    ),
+  );
 
   return (
     <div>
@@ -292,7 +299,7 @@ export const Home = () => {
         </div>
       </Spin>
 
-      {contextHolder}
+      {messageHolder}
     </div>
   );
 };

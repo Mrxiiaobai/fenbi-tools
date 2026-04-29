@@ -5,21 +5,25 @@ import WebviewHandle from "./api/webviewHandle";
 export function activate(context: vscode.ExtensionContext) {
   const provider = new MyWebviewProvider(context);
 
-  vscode.commands.registerCommand("openFenbiWebview.refreshEntry", () => {
-    const config = vscode.workspace.getConfiguration("fenbiTools");
-    webview.postMessage({
-      command: "setting",
-      data: config,
-    });
-  });
-
   context.subscriptions.push(
-    vscode.window.registerWebviewViewProvider("openFenbiWebview", provider)
+    vscode.commands.registerCommand("openFenbiWebview.refreshEntry", () => {
+      const config = vscode.workspace.getConfiguration("fenbiTools");
+      webview.postMessage({
+        command: "setting",
+        data: config,
+      });
+    }),
+    vscode.window.registerWebviewViewProvider("openFenbiWebview", provider, {
+      webviewOptions: {
+        retainContextWhenHidden: true,
+      },
+    })
   );
 }
 
 class MyWebviewProvider implements vscode.WebviewViewProvider {
   private _context: vscode.ExtensionContext;
+  private _messageDisposable?: vscode.Disposable;
 
   constructor(context: vscode.ExtensionContext) {
     this._context = context;
@@ -28,6 +32,8 @@ class MyWebviewProvider implements vscode.WebviewViewProvider {
   async resolveWebviewView(webviewView: vscode.WebviewView) {
     webview.createSideInit(webviewView, this._context.extensionPath);
 
-    new WebviewHandle().onDidReceiveMessage();
+    this._messageDisposable?.dispose();
+    this._messageDisposable = new WebviewHandle().onDidReceiveMessage();
+    this._context.subscriptions.push(this._messageDisposable);
   }
 }

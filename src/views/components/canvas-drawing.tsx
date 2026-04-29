@@ -22,10 +22,12 @@ const CanvasDraw = ({ onClose }: { onClose: () => void }) => {
   const isDrawing = React.useRef(false);
 
   React.useEffect(() => {
-    const canvas = canvasRef.current!;
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
     const dpr = window.devicePixelRatio || 1;
 
-    const detail = document.querySelector(".detail_page") as HTMLElement;
+    const detail = document.querySelector<HTMLElement>(".detail_page");
     if (!detail) return;
 
     // 覆盖整个 detail_page （可滚动区域）
@@ -40,7 +42,9 @@ const CanvasDraw = ({ onClose }: { onClose: () => void }) => {
     canvas.width = cssWidth * dpr;
     canvas.height = cssHeight * dpr;
 
-    const ctx = canvas.getContext("2d")!;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     ctx.scale(dpr, dpr);
     ctx.lineWidth = 3;
     ctx.lineCap = "round";
@@ -49,12 +53,21 @@ const CanvasDraw = ({ onClose }: { onClose: () => void }) => {
     ctxRef.current = ctx;
   }, []);
 
-  const getPos = (e: any) => {
-    const rect = canvasRef.current!.getBoundingClientRect();
-    const scrollTop = document.querySelector(".detail_page")!.scrollTop;
+  const getPos = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
+  ) => {
+    const canvas = canvasRef.current;
+    const detail = document.querySelector<HTMLElement>(".detail_page");
+    if (!canvas || !detail) return null;
 
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const rect = canvas.getBoundingClientRect();
+    const scrollTop = detail.scrollTop;
+
+    const point = "touches" in e ? e.touches[0] : e;
+    if (!point) return null;
+
+    const clientX = point.clientX;
+    const clientY = point.clientY;
 
     return {
       x: clientX - rect.left,
@@ -63,21 +76,31 @@ const CanvasDraw = ({ onClose }: { onClose: () => void }) => {
     };
   };
 
-  const startDrawing = (e: any) => {
+  const startDrawing = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
+  ) => {
     const ctx = ctxRef.current;
     if (!ctx) return;
-    const { x, y } = getPos(e);
+    const pos = getPos(e);
+    if (!pos) return;
+
+    const { x, y } = pos;
     ctx.beginPath();
     ctx.moveTo(x, y);
     isDrawing.current = true;
   };
 
-  const draw = (e: any) => {
+  const draw = (
+    e: React.MouseEvent<HTMLCanvasElement> | React.TouchEvent<HTMLCanvasElement>,
+  ) => {
     if (!isDrawing.current) return;
     const ctx = ctxRef.current;
     if (!ctx) return;
 
-    const { x, y } = getPos(e);
+    const pos = getPos(e);
+    if (!pos) return;
+
+    const { x, y } = pos;
     ctx.lineTo(x, y);
     ctx.stroke();
   };
@@ -87,8 +110,9 @@ const CanvasDraw = ({ onClose }: { onClose: () => void }) => {
   };
 
   const clearCanvas = () => {
-    const canvas = canvasRef.current!;
+    const canvas = canvasRef.current;
     const ctx = ctxRef.current;
+    if (!canvas) return;
     if (ctx) ctx.clearRect(0, 0, canvas.width, canvas.height);
   };
 

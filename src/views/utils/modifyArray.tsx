@@ -1,8 +1,15 @@
-import { PlayCircleOutlined, SendOutlined } from "@ant-design/icons";
 import { Button, Flex } from "antd";
+import { DataNode } from "antd/es/tree";
 import * as React from "react";
+import { CacheData, CategoryNode } from "../../shared/types";
 
-const normalizeNode = (item: any) => {
+type NormalizedCategoryNode = CategoryNode & {
+  children: CategoryNode[];
+  count: number;
+  answerCount: number;
+};
+
+const normalizeNode = (item: CategoryNode): NormalizedCategoryNode => {
   const children = item.children || item.childrenLabels || [];
   const count = item.count ?? item?.labelMeta?.paperCount ?? 0;
   const answerCount = item.answerCount ?? 0;
@@ -15,11 +22,10 @@ const normalizeNode = (item: any) => {
 };
 
 export const modifyArrayToTree = (
-  arr: any[],
-  cacheResult: any = {},
-  callback?: (item: any, cacheKey: any[]) => void,
-  level = 1
-) => {
+  arr: CategoryNode[],
+  cacheResult: CacheData = {},
+  callback?: (item: CategoryNode, cacheResult: CacheData) => void,
+): DataNode[] => {
   return arr.map((rawItem) => {
     const item = normalizeNode(rawItem);
     const isContinue = cacheResult?.keypointIds?.includes(item.id);
@@ -49,10 +55,9 @@ export const modifyArrayToTree = (
       </div>
     );
 
-    const node: any = {
+    const node: DataNode = {
       title,
       key: item.id,
-      // selectable: false, // ❗点击节点只用于展开，不选中
     };
 
     if (item.children?.length) {
@@ -60,11 +65,9 @@ export const modifyArrayToTree = (
         item.children,
         cacheResult,
         callback,
-        level + 1
       );
     }
 
     return node;
   });
 };
-

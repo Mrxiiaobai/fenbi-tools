@@ -2,18 +2,19 @@ import * as React from "react";
 import { TMaterials, TQuestionItem, TSolutionItem } from "../types";
 import { Button, Radio, RadioChangeEvent, Space } from "antd";
 import { radioMap } from "../utils/constant";
-import { ThemeContext } from "../context/themeContext";
 import { setImg } from "../utils/setImg";
 import { useSetting } from "../components/hooks";
 
+type QuestionRenderItem = TQuestionItem | TSolutionItem;
+
 interface TQuestionItemProps {
-  data: TSolutionItem[];
+  data: QuestionRenderItem[];
   materials: TMaterials[];
   index: number;
-  onChange: (e: RadioChangeEvent, item: TSolutionItem, index: number) => void;
+  onChange: (e: RadioChangeEvent, item: QuestionRenderItem, index: number) => void;
 }
 export const QuestionItem = (props: TQuestionItemProps) => {
-  const { data = [], materials = [], onChange, index } = props;
+  const { data = [], materials = [], onChange, index: _index } = props;
 
   const [excludeMap, setExcludeMap] = React.useState<Record<string, boolean>>(
     {},
@@ -31,9 +32,9 @@ export const QuestionItem = (props: TQuestionItemProps) => {
           }}
         ></div>
       )} */}
-      {(data || []).map((ele: TSolutionItem, index: number) => {
+      {data.map((ele: QuestionRenderItem, index: number) => {
         return (
-          <div>
+          <div key={ele.globalId || ele.id || index}>
             {(materials || []).length > 0 && (
               <div
                 key={index}
@@ -53,9 +54,10 @@ export const QuestionItem = (props: TQuestionItemProps) => {
               ></div>
 
               <div className="answer-item">
-                {(ele.accessories || []).map((access: any, ind: number) => {
+                {(ele.accessories || []).map((access, ind: number) => {
                   return (
                     <Radio.Group
+                      key={`${ele.globalId || ele.id || index}-${ind}`}
                       style={{
                         display: "flex",
                         flexDirection: "column",
@@ -71,12 +73,15 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                       }
                     >
                       {(access?.options || []).map(
-                        (option: any, index2: number) => {
+                        (option, index2: number) => {
                           const newOption = setImg(option);
                           const key = `${index}-${ind}-${index2}`;
                           const excluded = excludeMap[key];
                           return (
-                            <Space style={{ justifyContent: "space-between" }}>
+                            <Space
+                              key={key}
+                              style={{ justifyContent: "space-between" }}
+                            >
                               <Radio value={index2}>
                                 <div
                                   style={{
@@ -118,7 +123,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                 })}
               </div>
 
-              {ele?.solution && (
+              {"solution" in ele && ele.solution && (
                 <div className="solution-container">
                   <p>
                     <span

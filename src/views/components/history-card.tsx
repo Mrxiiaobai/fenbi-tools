@@ -1,11 +1,12 @@
 import * as React from "react";
 import { Button, Flex } from "antd";
 import * as dayjs from "dayjs";
+import { HistoryExercise } from "../types";
 
 export const HistoryCard = (props: {
   onClick?: () => void | undefined;
-  data: any[];
-  goExercise: (data: any) => void;
+  data: HistoryExercise[];
+  goExercise: (data: HistoryExercise) => void;
 }) => {
   const { onClick, data, goExercise } = props;
 
@@ -32,11 +33,10 @@ export const HistoryCard = (props: {
             type="primary"
             style={{ borderColor: "white" }}
             onClick={() => {
-              if (_data?.status == 1) return;
               goExercise(_data);
             }}
           >
-            {_data?.status == 1 ? "已完成" : "继续做题"}
+            继续做题
           </Button>
         </div>
       ) : null}

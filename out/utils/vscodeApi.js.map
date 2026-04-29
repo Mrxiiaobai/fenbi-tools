@@ -1,1 +1,0 @@
-{"version":3,"file":"vscodeApi.js","sourceRoot":"","sources":["../../src/utils/vscodeApi.ts"],"names":[],"mappings":";;;AAEA,IAAI,MAAM,GAAQ,IAAI,CAAC;AAEhB,MAAM,YAAY,GAAG,GAAG,EAAE;IAC/B,IAAI,CAAC,MAAM,EAAE;QACX,MAAM,GAAG,gBAAgB,EAAE,CAAC;KAC7B;IACD,OAAO,MAAM,CAAC;AAChB,CAAC,CAAC;AALW,QAAA,YAAY,gBAKvB"}

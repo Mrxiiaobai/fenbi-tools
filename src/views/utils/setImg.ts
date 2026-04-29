@@ -1,8 +1,8 @@
-export const setImg = (str: string) => {
-  if (!str) return str;
+export const setImg = (str?: string | null) => {
+  if (!str) return "";
   let _str = str.replace(
-    /(<img[^>]+src=\")([^"]+)/g,
-    function (match: any, p1: string, p2: string) {
+    /(<img[^>]+src=")([^"]+)/g,
+    function (_match: string, p1: string, p2: string) {
       // 如果 src 已经包含 https:，则不修改
       if (p2.startsWith("https:")) {
         return p1 + p2;
