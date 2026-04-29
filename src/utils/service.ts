@@ -12,8 +12,13 @@ import {
   QuestionPayload,
   SolutionPayload,
   UserQuestionInfoResponse,
+  UserTemplateInfoResponse,
 } from "../shared/types";
 import ajax from "./request";
+
+const WEB_API_QUERY = "app=web&kav=100&av=121&hav=100&version=3.0.0.0";
+const CURRENT_WEB_API_QUERY =
+  "app=web&kav=125&av=127&hav=125&version=3.0.0.0";
 
 export const getExercisesId = async (
   category: string = "xingce",
@@ -27,7 +32,7 @@ export const getExercisesId = async (
 
   const url = `https://tiku.fenbi.com/api/${
     category || "xingce"
-  }/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+  }/exercises?${WEB_API_QUERY}`;
 
   let limit = questionCount || 15;
   if (isEssayCategory(category)) {
@@ -57,7 +62,7 @@ export const getExercisesId = async (
 export const getQuickExercisesId = async (category: string = "xingce") => {
   const url = `https://tiku.fenbi.com/api/${
     category || "xingce"
-  }/exercises?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+  }/exercises?${WEB_API_QUERY}`;
 
   const res = await ajax<ExerciseKeyResponse>(
     "FORM",
@@ -65,6 +70,32 @@ export const getQuickExercisesId = async (category: string = "xingce") => {
     {
       type: 3,
       exerciseTimeMode: 2,
+    },
+    {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    },
+  );
+
+  return res;
+};
+
+export const getSmartExercisesId = async (
+  category: string = "xingce",
+  params: {
+    yearScope?: number;
+  } = {},
+) => {
+  const url = `https://tiku.fenbi.com/api/${
+    category || "xingce"
+  }/exercises?${CURRENT_WEB_API_QUERY}`;
+
+  const res = await ajax<ExerciseKeyResponse>(
+    "FORM",
+    url,
+    {
+      type: 2,
+      exerciseTimeMode: 2,
+      yearScope: params.yearScope ?? 0,
     },
     {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
@@ -215,8 +246,20 @@ export const changeQuestionCount = async (params: {
 };
 
 export const getUserQuestionInfo = async () => {
-  const url = `https://tiku.fenbi.com/activity/userquiz/getUserQuestionInfo?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
+  const url = `https://tiku.fenbi.com/activity/userquiz/getUserQuestionInfo?${WEB_API_QUERY}`;
   const res = await ajax<UserQuestionInfoResponse>("GET", url);
+  return res;
+};
+
+export const getUserTemplateInfo = async () => {
+  const url = `https://tiku.fenbi.com/activity/userquiz/getUserTemplateInfo?${CURRENT_WEB_API_QUERY}`;
+  const res = await ajax<UserTemplateInfoResponse>("GET", url);
+  return res;
+};
+
+export const updateUserTemplateInfo = async (params: { yearScope: number }) => {
+  const url = `https://tiku.fenbi.com/activity/userquiz/updateUserTemplateInfo?yearScope=${params.yearScope}&${CURRENT_WEB_API_QUERY}`;
+  const res = await ajax("POST", url, {});
   return res;
 };
 

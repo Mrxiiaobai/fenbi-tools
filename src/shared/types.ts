@@ -59,6 +59,14 @@ export interface UserQuestionInfoResponse {
   data?: UserQuestionInfoData;
 }
 
+export interface UserTemplateInfoData {
+  yearScope?: number;
+}
+
+export interface UserTemplateInfoResponse {
+  data?: UserTemplateInfoData;
+}
+
 export interface MaterialData {
   globalId?: string | number;
   content?: string | null;

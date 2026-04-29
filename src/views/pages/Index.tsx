@@ -1,5 +1,5 @@
 import * as React from "react";
-import { Spin, message, Select, Button, Flex, Radio } from "antd";
+import { Spin, message, Select, Button, Flex, Radio, Modal } from "antd";
 import { HistoryExercise, TSetting } from "../types";
 import { QuestionCount } from "../components/question-count";
 import { CustomTree } from "../components/custom-tree";
@@ -24,6 +24,12 @@ const careerCategoryOptions = [
   { label: "公基", value: SELECTENUM.SYDW },
 ];
 
+const templateYearScopeOptions = [
+  { label: "不限", value: 0 },
+  { label: "近5年", value: 5 },
+  { label: "近10年", value: 10 },
+];
+
 const isCareerCategory = (category?: string) => {
   return category === SELECTENUM.SYZC || category === SELECTENUM.SYDW;
 };
@@ -34,6 +40,8 @@ export const Home = () => {
   const [loading, setLoading] = React.useState(true);
   const [favoriteQuizLocationName, setFavoriteQuizLocationName] =
     React.useState("");
+  const [smartModalOpen, setSmartModalOpen] = React.useState(false);
+  const [smartYearScope, setSmartYearScope] = React.useState(0);
 
   const [treeData, setTreeData] = React.useState<
     ReturnType<typeof modifyArrayToTree>
@@ -110,17 +118,38 @@ export const Home = () => {
     id,
     combineKey,
     type,
+    mode,
+    smartYearScope,
   }: {
     id?: number;
     combineKey?: string;
     type?: number;
+    mode?: "quick" | "smart";
+    smartYearScope?: number;
   }) => {
     navigate("/detail", {
       state: {
         id,
         combineKey,
         type,
+        mode,
+        smartYearScope,
       },
+    });
+  };
+
+  const openSmartPaperModal = () => {
+    setLoading(true);
+    vscode.postMessage({
+      command: "getUserTemplateInfo",
+    });
+  };
+
+  const startSmartPaper = () => {
+    setSmartModalOpen(false);
+    goDetail({
+      mode: "smart",
+      smartYearScope,
     });
   };
 
@@ -200,6 +229,16 @@ export const Home = () => {
         if (message.command === "history") {
           setHistoryList((message.data as HistoryExercise[]) || []);
         }
+        if (message.command === "templateInfo") {
+          const data = message.data as { yearScope?: number };
+          const yearScope = Number(data.yearScope ?? 0);
+          setSmartYearScope(
+            templateYearScopeOptions.some((item) => item.value === yearScope)
+              ? yearScope
+              : 0,
+          );
+          setSmartModalOpen(true);
+        }
       },
       [messageApi, setting.categoryId],
     ),
@@ -241,18 +280,27 @@ export const Home = () => {
               入群交流
             </Button>
           </Flex>
-          <Flex justify="flex-start" align="center">
+          <Flex justify="flex-start" align="center" gap={8}>
             <Button
               type="link"
               style={{ borderColor: "white" }}
               onClick={() => {
                 goDetail({
-                  type: 2,
+                  mode: "quick",
                 });
               }}
             >
               快速练习
             </Button>
+            {!isEssayCategory(currentCategory) && (
+              <Button
+                type="link"
+                style={{ borderColor: "white" }}
+                onClick={openSmartPaperModal}
+              >
+                智能组卷
+              </Button>
+            )}
           </Flex>
           <Flex align="center">
             <Select
@@ -298,6 +346,23 @@ export const Home = () => {
           </div>
         </div>
       </Spin>
+
+      <Modal
+        title="智能组卷"
+        open={smartModalOpen}
+        okText="生成试卷"
+        cancelText="取消"
+        onOk={startSmartPaper}
+        onCancel={() => setSmartModalOpen(false)}
+      >
+        <div style={{ marginBottom: 12 }}>出题年份</div>
+        <Radio.Group
+          options={templateYearScopeOptions}
+          optionType="button"
+          value={smartYearScope}
+          onChange={(event) => setSmartYearScope(event.target.value)}
+        />
+      </Modal>
 
       {messageHolder}
     </div>

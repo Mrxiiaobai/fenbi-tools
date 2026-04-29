@@ -27,6 +27,8 @@ interface DetailLocationState {
   id?: number;
   type?: number;
   combineKey?: string;
+  mode?: "quick" | "smart";
+  smartYearScope?: number;
 }
 
 export const Detail = () => {
@@ -42,12 +44,25 @@ export const Detail = () => {
 
   const navigate = useNavigate();
   const location = useLocation();
-  const { id, type = 1, combineKey: defaultCombineKey = "" } =
+  const {
+    id,
+    type = 1,
+    combineKey: defaultCombineKey = "",
+    mode,
+    smartYearScope,
+  } =
     ((location.state || {}) as DetailLocationState);
   const [combineKey, setCombineKey] = React.useState(defaultCombineKey);
 
   React.useEffect(() => {
-    getQuestion({ category: setting.categoryId, id, combineKey, type });
+    getQuestion({
+      category: setting.categoryId,
+      id,
+      combineKey,
+      type,
+      mode,
+      smartYearScope,
+    });
   }, []);
 
   React.useEffect(() => {
@@ -63,14 +78,25 @@ export const Detail = () => {
     id,
     combineKey,
     type = 1,
+    mode,
+    smartYearScope,
   }: {
     category?: string;
     id?: number;
     combineKey?: string | null;
     type?: number;
+    mode?: "quick" | "smart";
+    smartYearScope?: number;
   }) => {
     setLoading(true);
-    if (type == 2) {
+    if (mode === "smart") {
+      vscode.postMessage({
+        command: "getSmartQuestion",
+        postData: { category, combineKey, yearScope: smartYearScope },
+      });
+      return;
+    }
+    if (mode === "quick" || type == 2) {
       vscode.postMessage({
         command: "getQuickQuestion",
         postData: { category, combineKey },

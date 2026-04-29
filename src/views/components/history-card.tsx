@@ -24,7 +24,7 @@ export const HistoryCard = (props: {
           全部（最近15条）
         </Button>
       </Flex>
-      {_data?.status == 0 && _data?.sheet?.type == 3 ? (
+      {_data?.status == 0 && _data?.sheet?.type <= 3 ? (
         <div>
           <p>{_data?.sheet?.name}</p>
           {/* <p>{_data?.sheet?.type == 1 ? "试卷" : "练习"}</p> */}

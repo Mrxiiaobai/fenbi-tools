@@ -29,11 +29,14 @@ import {
   getHistory,
   getQuestion,
   getQuickExercisesId,
+  getSmartExercisesId,
   getSolution,
   getSolutionQuestion,
+  getUserTemplateInfo,
   incr,
   studyTime,
   submit,
+  updateUserTemplateInfo,
 } from "../utils/service";
 import { webview } from "../utils/webview";
 
@@ -55,6 +58,10 @@ interface QuestionPostData {
   category?: string;
   combineKey?: string;
   id?: number;
+}
+
+interface SmartQuestionPostData extends QuestionPostData {
+  yearScope?: number;
 }
 
 interface AnswerPostData {
@@ -84,12 +91,18 @@ interface OpenInBrowserPostData {
   url?: string;
 }
 
+type QuestionLoadMode = "normal" | "quick" | "smart";
+
 const getErrorMessage = (error: unknown) => {
   return error instanceof Error ? error.message : String(error);
 };
 
 const getStaticUrl = (result: ExerciseResult) => {
   return result.data?.staticUrl?.urls?.[0] || "";
+};
+
+const normalizeTemplateYearScope = (yearScope?: number) => {
+  return [0, 5, 10].includes(Number(yearScope)) ? Number(yearScope) : 0;
 };
 
 const attachUserAnswers = <TItem extends QuestionItem | SolutionItem>(
@@ -139,6 +152,12 @@ export default class WebviewHandle {
         return;
       case "getQuickQuestion":
         await this.getQuickQuestion((postData || {}) as QuestionPostData);
+        return;
+      case "getSmartQuestion":
+        await this.getSmartQuestion((postData || {}) as SmartQuestionPostData);
+        return;
+      case "getUserTemplateInfo":
+        await this.getUserTemplateInfo();
         return;
       case "submit":
         await this.submit((postData || {}) as SubmitPostData);
@@ -250,21 +269,41 @@ export default class WebviewHandle {
   }
 
   async getQuestion(params: QuestionPostData) {
-    await this.loadQuestion(params, false);
+    await this.loadQuestion(params, "normal");
   }
 
   async getQuickQuestion(params: QuestionPostData) {
-    await this.loadQuestion(params, true);
+    await this.loadQuestion(params, "quick");
   }
 
-  private async loadQuestion(params: QuestionPostData, quickMode: boolean) {
+  async getSmartQuestion(params: SmartQuestionPostData) {
+    const yearScope = normalizeTemplateYearScope(params.yearScope);
+    await updateUserTemplateInfo({ yearScope });
+    await this.loadQuestion({ ...params, yearScope }, "smart");
+  }
+
+  async getUserTemplateInfo() {
+    const res = await getUserTemplateInfo();
+    webview.postMessage({
+      command: "templateInfo",
+      data: res.data || {},
+    });
+  }
+
+  private async loadQuestion(
+    params: QuestionPostData & { yearScope?: number },
+    mode: QuestionLoadMode,
+  ) {
     const category = params.category || SELECTENUM.XINGCE;
     let combineKey = params.combineKey || "";
 
     if (!combineKey) {
-      const keyResult = quickMode
-        ? await getQuickExercisesId(category)
-        : await getExercisesId(category, { keypointId: params.id });
+      const keyResult =
+        mode === "smart"
+          ? await getSmartExercisesId(category, { yearScope: params.yearScope })
+          : mode === "quick"
+            ? await getQuickExercisesId(category)
+            : await getExercisesId(category, { keypointId: params.id });
       combineKey = keyResult.key || "";
     }
 
