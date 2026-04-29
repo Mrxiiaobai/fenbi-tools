@@ -135,7 +135,7 @@ export interface CategoryNode {
   id: number | string;
   name?: string;
   children?: CategoryNode[];
-  childrenLabels?: CategoryNode[];
+  childrenLabels?: CategoryNode[] | null;
   count?: number;
   answerCount?: number;
   labelMeta?: {

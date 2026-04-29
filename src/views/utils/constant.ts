@@ -44,4 +44,8 @@ export const categoryOptions = [
     label: "事业单位综应",
     value: SELECTENUM.ZHYYNL,
   },
+  {
+    label: "事业单位面试",
+    value: SELECTENUM.SYDWMS,
+  },
 ];

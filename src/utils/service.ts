@@ -1,4 +1,4 @@
-import { isEssayCategory } from "../shared/category";
+import { SELECTENUM, isEssayCategory } from "../shared/category";
 import { buildMaterialsForQuestions } from "../shared/materials";
 import {
   CacheData,
@@ -144,6 +144,9 @@ export const getCategories = async (category: string) => {
   if (category === "zhyynl") {
     url =
       "https://tiku.fenbi.com/api/zhyynl/etRuleQuestion/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
+  }
+  if (category === SELECTENUM.SYDWMS) {
+    url = `https://tiku.fenbi.com/api/${category}/categories?&filter=giant&${CURRENT_WEB_API_QUERY}`;
   }
   const res = await ajax<CategoryNode[]>("GET", url);
   return res;
