@@ -1,6 +1,6 @@
 import * as React from "react";
 import { Spin, message, Select, Button, Flex, Radio, Modal } from "antd";
-import { HistoryExercise, TSetting } from "../types";
+import { HistoryExercise } from "../types";
 import { QuestionCount } from "../components/question-count";
 import { CustomTree } from "../components/custom-tree";
 import { HistoryCard } from "../components/history-card";
@@ -56,23 +56,6 @@ export const Home = () => {
     pageInit({ categoryId: category });
     getHistory({ count: 15, categoryId: categoryConfig.historyCategoryId, category });
   }, []);
-
-  const setTheme = (theme: TSetting) => {
-    setSetting((prev) => ({ ...prev, ...theme }));
-
-    document.documentElement.style.setProperty(
-      "--primary-color",
-      theme.color || "#ffffff",
-    );
-    document.documentElement.style.setProperty(
-      "--primary-backgroundColor",
-      theme.backgroundColor || "#ffffff",
-    );
-    document.documentElement.style.setProperty(
-      "--primary-fontSize",
-      `${theme.fontSize || 12}px`,
-    );
-  };
 
   const pageInit = (postData?: { categoryId?: string }) => {
     vscode.postMessage({
@@ -209,9 +192,6 @@ export const Home = () => {
       (message) => {
         setLoading(false);
 
-        if (message.command === "setting") {
-          setTheme((message.data || {}) as TSetting);
-        }
         if (message.command === "init") {
           const data = message.data as {
             favoriteQuizLocationName?: string;
