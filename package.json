@@ -91,6 +91,16 @@
           "type": "number",
           "default": 12,
           "markdownDescription": "自定义字体大小（单位px），默认12，请修改后刷新"
+        },
+        "fenbiTools.canvasBrushColor": {
+          "type": "string",
+          "default": "red",
+          "markdownDescription": "画板默认画笔颜色，例如 red 或 #ff0000"
+        },
+        "fenbiTools.canvasBrushWidth": {
+          "type": "number",
+          "default": 3,
+          "markdownDescription": "画板默认画笔粗细（单位px）"
         }
       }
     }

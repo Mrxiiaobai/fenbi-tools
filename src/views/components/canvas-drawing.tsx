@@ -1,5 +1,6 @@
 import { Button } from "antd";
 import * as React from "react";
+import { useSetting } from "./hooks";
 
 export default function CanvasDrawing() {
   const [showDraw, setShowDraw] = React.useState(false);
@@ -20,6 +21,7 @@ const CanvasDraw = ({ onClose }: { onClose: () => void }) => {
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
   const ctxRef = React.useRef<CanvasRenderingContext2D | null>(null);
   const isDrawing = React.useRef(false);
+  const { setting } = useSetting();
 
   React.useEffect(() => {
     const canvas = canvasRef.current;
@@ -46,9 +48,9 @@ const CanvasDraw = ({ onClose }: { onClose: () => void }) => {
     if (!ctx) return;
 
     ctx.scale(dpr, dpr);
-    ctx.lineWidth = 3;
+    ctx.lineWidth = Number(setting.canvasBrushWidth) || 3;
     ctx.lineCap = "round";
-    ctx.strokeStyle = "red";
+    ctx.strokeStyle = String(setting.canvasBrushColor || "red");
 
     ctxRef.current = ctx;
   }, []);
