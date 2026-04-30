@@ -131,6 +131,111 @@ export interface SolutionPayload extends QuestionPayload {
   correctCount?: number;
 }
 
+export interface SydwmsGiantQuestion extends QuestionItem {
+  questionId?: number | string;
+  idStr?: string;
+  title?: string;
+  stem?: string;
+  question?: string | Record<string, unknown>;
+  answer?: string;
+  analysis?: string;
+  solution?: string;
+  parse?: string;
+  source?: string;
+  name?: string;
+  children?: SydwmsGiantQuestion[];
+  [key: string]: unknown;
+}
+
+export type SydwmsGiantPayload = Array<number | string>;
+
+export interface SydwmsSolutionAccessory {
+  label?: string;
+  content?: string;
+  name?: string;
+  title?: string;
+  [key: string]: unknown;
+}
+
+export interface SydwmsSolutionItem extends SolutionItem {
+  questionId?: number | string;
+  idStr?: string;
+  answer?: string;
+  analysis?: string;
+  parse?: string;
+  solutionAccessories?: SydwmsSolutionAccessory[];
+  [key: string]: unknown;
+}
+
+export interface SydwmsSolutionPayload {
+  data?: SydwmsSolutionItem[] | Record<string, SydwmsSolutionItem>;
+  datas?: SydwmsSolutionItem[];
+  materials?: Array<MaterialData | null>;
+  solutions?: SydwmsSolutionItem[];
+  [key: string]: unknown;
+}
+
+export interface SydwmsEpisodeMediaItem {
+  url?: string;
+  playbackUrl?: string;
+  playerUrl?: string;
+  originalUrl?: string;
+  format?: number;
+  duration?: number;
+  size?: number;
+  realSize?: number;
+  bitrate?: number;
+  height?: number;
+  width?: number;
+  [key: string]: unknown;
+}
+
+export interface SydwmsEpisodeMetaPayload {
+  code?: number;
+  msg?: string;
+  total?: number;
+  data?: SydwmsEpisodeMediaItem | SydwmsEpisodeMediaItem[];
+  datas?: SydwmsEpisodeMediaItem[];
+  [key: string]: unknown;
+}
+
+export interface SydwmsEpisodeItem {
+  id?: number | string;
+  episodeId?: number | string;
+  episode_id?: number | string;
+  title?: string;
+  name?: string;
+  questionId?: number | string;
+  tikuId?: number | string;
+  media?: unknown;
+  meta?: unknown;
+  [key: string]: unknown;
+}
+
+export interface SydwmsEpisodePayload {
+  data?: Record<string, Record<string, SydwmsEpisodeItem> | SydwmsEpisodeItem[]>;
+  [key: string]: unknown;
+}
+
+export interface SydwmsNotePayload {
+  data?: unknown;
+  datas?: unknown;
+  notes?: unknown;
+  [key: string]: unknown;
+}
+
+export interface SydwmsInterviewDetailPayload {
+  materials: Array<MaterialData | null>;
+  questions: SydwmsSolutionItem[];
+  solutions: SydwmsSolutionItem[];
+  episodes: SydwmsEpisodeItem[];
+  notes?: unknown;
+  questionId?: number | string;
+  questionIndex: number;
+  questionCount: number;
+  questionIds: Array<number | string>;
+}
+
 export interface CategoryNode {
   id: number | string;
   name?: string;

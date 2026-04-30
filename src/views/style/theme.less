@@ -6,7 +6,6 @@
 
 * {
   color: var(--primary-color) !important;
-  background: var(--primary-backgroundColor) !important;
   font-size: var(--primary-fontSize);
 
   &::placeholder {
@@ -20,6 +19,10 @@
   .bg_transparent {
     background: transparent !important;
   }
+}
+
+*:not(.ant-switch):not(.ant-switch *):not(.ant-color-picker-inner):not(.ant-color-picker-inner *) {
+  background: var(--primary-backgroundColor) !important;
 }
 
 body {

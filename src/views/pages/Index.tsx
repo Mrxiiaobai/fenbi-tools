@@ -1,6 +1,17 @@
 import * as React from "react";
-import { Spin, message, Select, Button, Flex, Radio, Modal } from "antd";
-import { HistoryExercise } from "../types";
+import {
+  Button,
+  ColorPicker,
+  Flex,
+  InputNumber,
+  Modal,
+  Radio,
+  Select,
+  Spin,
+  Switch,
+  message,
+} from "antd";
+import { HistoryExercise, TSetting } from "../types";
 import { QuestionCount } from "../components/question-count";
 import { CustomTree } from "../components/custom-tree";
 import { HistoryCard } from "../components/history-card";
@@ -30,8 +41,155 @@ const templateYearScopeOptions = [
   { label: "近10年", value: 10 },
 ];
 
+const settingPanelStyle: React.CSSProperties = {
+  display: "flex",
+  flexDirection: "column",
+  gap: 12,
+  background: "#ffffff",
+  color: "#1f1f1f",
+};
+
+const settingLabelStyle: React.CSSProperties = {
+  display: "block",
+  marginBottom: 6,
+  color: "#333333",
+  fontSize: 12,
+};
+
+const settingControlStyle: React.CSSProperties = {
+  width: "100%",
+};
+
+const settingPanelActionsStyle: React.CSSProperties = {
+  display: "flex",
+  justifyContent: "flex-end",
+  gap: 8,
+  marginTop: 4,
+};
+
+const settingsModalStyles = {
+  mask: {
+    backgroundColor: "transparent",
+  },
+  content: {
+    backgroundColor: "#ffffff",
+    color: "#1f1f1f",
+    padding: 12,
+  },
+  header: {
+    backgroundColor: "#ffffff",
+    color: "#1f1f1f",
+    marginBottom: 12,
+  },
+  body: {
+    backgroundColor: "#ffffff",
+    color: "#1f1f1f",
+    padding: 0,
+  },
+  footer: {
+    backgroundColor: "#ffffff",
+    marginTop: 12,
+  },
+};
+
+const SettingsPanel = ({
+  settingsDraft,
+  updateSettingsDraft,
+  saveSettings,
+  closeSettings,
+}: {
+  settingsDraft: TSetting;
+  updateSettingsDraft: <TKey extends keyof TSetting>(
+    key: TKey,
+    value: TSetting[TKey],
+  ) => void;
+  saveSettings: () => void;
+  closeSettings: () => void;
+}) => {
+  return (
+    <div style={settingPanelStyle}>
+      <div>
+        <span style={settingLabelStyle}>字体颜色</span>
+        <ColorPicker
+          size="small"
+          showText
+          value={String(settingsDraft.color || "#ffffff")}
+          onChange={(_, hex) => updateSettingsDraft("color", hex)}
+        />
+      </div>
+
+      <div>
+        <span style={settingLabelStyle}>背景颜色</span>
+        <ColorPicker
+          size="small"
+          showText
+          value={String(settingsDraft.backgroundColor || "#21222b")}
+          onChange={(_, hex) => updateSettingsDraft("backgroundColor", hex)}
+        />
+      </div>
+
+      <div>
+        <span style={settingLabelStyle}>选项排除线</span>
+        <Switch
+          size="small"
+          checked={Boolean(settingsDraft.needLineThrough)}
+          onChange={(checked) => updateSettingsDraft("needLineThrough", checked)}
+        />
+      </div>
+
+      <div>
+        <span style={settingLabelStyle}>字体大小</span>
+        <InputNumber
+          size="small"
+          min={10}
+          max={28}
+          addonAfter="px"
+          value={Number(settingsDraft.fontSize) || 12}
+          style={settingControlStyle}
+          onChange={(value) => updateSettingsDraft("fontSize", Number(value) || 12)}
+        />
+      </div>
+
+      <div>
+        <span style={settingLabelStyle}>画板画笔颜色</span>
+        <ColorPicker
+          size="small"
+          showText
+          value={String(settingsDraft.canvasBrushColor || "red")}
+          onChange={(_, hex) => updateSettingsDraft("canvasBrushColor", hex)}
+        />
+      </div>
+
+      <div>
+        <span style={settingLabelStyle}>画板画笔粗细</span>
+        <InputNumber
+          size="small"
+          min={1}
+          max={30}
+          addonAfter="px"
+          value={Number(settingsDraft.canvasBrushWidth) || 3}
+          style={settingControlStyle}
+          onChange={(value) => {
+            updateSettingsDraft("canvasBrushWidth", Number(value) || 3);
+          }}
+        />
+      </div>
+
+      <div style={settingPanelActionsStyle} />
+    </div>
+  );
+};
+
 const isCareerCategory = (category?: string) => {
   return category === SELECTENUM.SYZC || category === SELECTENUM.SYDW;
+};
+
+const canShowSmartPaper = (category?: string) => {
+  return (
+    category === SELECTENUM.XINGCE ||
+    category === SELECTENUM.SYZC ||
+    category === SELECTENUM.SYDW
+  );
 };
 
 export const Home = () => {
@@ -41,7 +199,9 @@ export const Home = () => {
   const [favoriteQuizLocationName, setFavoriteQuizLocationName] =
     React.useState("");
   const [smartModalOpen, setSmartModalOpen] = React.useState(false);
+  const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
   const [smartYearScope, setSmartYearScope] = React.useState(0);
+  const [settingsDraft, setSettingsDraft] = React.useState<TSetting>({});
 
   const [treeData, setTreeData] = React.useState<
     ReturnType<typeof modifyArrayToTree>
@@ -64,10 +224,21 @@ export const Home = () => {
     });
   };
 
-  const treeClick = (e: { id: number | string }, cacheResult: { keypointIds?: Array<number | string>; combineKey?: string }) => {
+  const treeClick = (e: { id: number | string; name?: string }, cacheResult: { keypointIds?: Array<number | string>; combineKey?: string }) => {
     const key = e.id;
 
     setLoading(true);
+    if (setting.categoryId === SELECTENUM.SYDWMS) {
+      navigate("/sydwms-detail", {
+        state: {
+          keypointId: key,
+          title: e.name,
+          questionIndex: 0,
+        },
+      });
+      return;
+    }
+
     let combineKey: string | null = null;
     const len = cacheResult?.keypointIds?.length || 0;
     if (len > 0 && cacheResult?.keypointIds?.includes(key)) {
@@ -126,6 +297,47 @@ export const Home = () => {
     vscode.postMessage({
       command: "getUserTemplateInfo",
     });
+  };
+
+  const openSettingsModal = () => {
+    setSettingsDraft({
+      color: setting.color || "#ffffff",
+      backgroundColor: setting.backgroundColor || "#21222b",
+      needLineThrough: Boolean(setting.needLineThrough),
+      fontSize: Number(setting.fontSize) || 12,
+      canvasBrushColor: setting.canvasBrushColor || "red",
+      canvasBrushWidth: Number(setting.canvasBrushWidth) || 3,
+    });
+    setSettingsModalOpen(true);
+  };
+
+  const updateSettingsDraft = <TKey extends keyof TSetting>(
+    key: TKey,
+    value: TSetting[TKey],
+  ) => {
+    setSettingsDraft((prev) => ({
+      ...prev,
+      [key]: value,
+    }));
+  };
+
+  const saveSettings = () => {
+    vscode.postMessage({
+      command: "updateSettings",
+      postData: {
+        color: settingsDraft.color || "#ffffff",
+        backgroundColor: settingsDraft.backgroundColor || "#21222b",
+        needLineThrough: Boolean(settingsDraft.needLineThrough),
+        fontSize: Number(settingsDraft.fontSize) || 12,
+        canvasBrushColor: settingsDraft.canvasBrushColor || "red",
+        canvasBrushWidth: Number(settingsDraft.canvasBrushWidth) || 3,
+      },
+    });
+    setSetting((prev) => ({
+      ...prev,
+      ...settingsDraft,
+    }));
+    setSettingsModalOpen(false);
   };
 
   const startSmartPaper = () => {
@@ -219,6 +431,11 @@ export const Home = () => {
           );
           setSmartModalOpen(true);
         }
+        if (message.command === "settingsUpdated") {
+          messageApi.success(
+            (message.data as { message?: string })?.message || "设置已保存",
+          );
+        }
       },
       [messageApi, setting.categoryId],
     ),
@@ -229,6 +446,14 @@ export const Home = () => {
       <Spin tip="loading..." spinning={loading}>
         <div>
           <Flex justify="flex-end" align="center">
+            <Button
+              type="link"
+              size="small"
+              style={{ borderColor: "white" }}
+              onClick={openSettingsModal}
+            >
+              设置
+            </Button>
             <Button
               type="link"
               size="small"
@@ -260,28 +485,6 @@ export const Home = () => {
               入群交流
             </Button>
           </Flex>
-          <Flex justify="flex-start" align="center" gap={8}>
-            <Button
-              type="link"
-              style={{ borderColor: "white" }}
-              onClick={() => {
-                goDetail({
-                  mode: "quick",
-                });
-              }}
-            >
-              快速练习
-            </Button>
-            {!isEssayCategory(currentCategory) && (
-              <Button
-                type="link"
-                style={{ borderColor: "white" }}
-                onClick={openSmartPaperModal}
-              >
-                智能组卷
-              </Button>
-            )}
-          </Flex>
           <Flex align="center">
             <Select
               options={categoryOptions}
@@ -305,9 +508,37 @@ export const Home = () => {
               />
             </div>
           )}
-          {isEssayCategory(setting.categoryId) && (
+          {canShowSmartPaper(currentCategory) && (
+            <Flex justify="flex-start" align="center" gap={8} style={{ margin: "0 10px 10px" }}>
+              <Button
+                type="link"
+                style={{ borderColor: "white" }}
+                onClick={() => {
+                  goDetail({
+                    mode: "quick",
+                  });
+                }}
+              >
+                快速练习
+              </Button>
+              <Button
+                type="link"
+                style={{ borderColor: "white" }}
+                onClick={openSmartPaperModal}
+              >
+                智能组卷
+              </Button>
+            </Flex>
+          )}
+          {(currentCategory === SELECTENUM.SHENLUN ||
+            currentCategory === SELECTENUM.ZHYYNL) && (
             <div>
               ps：申论功能需要前往粉笔官网充vip才能交卷，与该插件无关，由于没有vip，交卷及后续功能暂无法支持，感谢理解！
+            </div>
+          )}
+          {currentCategory === SELECTENUM.SYDWMS && (
+            <div>
+              ps：面试功能需要前往粉笔官网充vip才能显示并查看解析视频、详细解析，没有vip仅显示问题与部分解析，与该插件无关。
             </div>
           )}
           <div className="menu-container">
@@ -341,6 +572,31 @@ export const Home = () => {
           optionType="button"
           value={smartYearScope}
           onChange={(event) => setSmartYearScope(event.target.value)}
+        />
+      </Modal>
+
+      <Modal
+        className="theme_exempt"
+        title="设置"
+        open={settingsModalOpen}
+        width={280}
+        okText="保存"
+        cancelText="取消"
+        maskStyle={settingsModalStyles.mask}
+        styles={{
+          content: settingsModalStyles.content,
+          header: settingsModalStyles.header,
+          body: settingsModalStyles.body,
+          footer: settingsModalStyles.footer,
+        }}
+        onOk={saveSettings}
+        onCancel={() => setSettingsModalOpen(false)}
+      >
+        <SettingsPanel
+          settingsDraft={settingsDraft}
+          updateSettingsDraft={updateSettingsDraft}
+          saveSettings={saveSettings}
+          closeSettings={() => setSettingsModalOpen(false)}
         />
       </Modal>
 

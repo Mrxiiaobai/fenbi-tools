@@ -11,6 +11,11 @@ import {
   QuestionCard,
   QuestionPayload,
   SolutionPayload,
+  SydwmsEpisodeMetaPayload,
+  SydwmsEpisodePayload,
+  SydwmsGiantPayload,
+  SydwmsNotePayload,
+  SydwmsSolutionPayload,
   UserQuestionInfoResponse,
   UserTemplateInfoResponse,
 } from "../shared/types";
@@ -19,6 +24,7 @@ import ajax from "./request";
 const WEB_API_QUERY = "app=web&kav=100&av=121&hav=100&version=3.0.0.0";
 const CURRENT_WEB_API_QUERY =
   "app=web&kav=125&av=127&hav=125&version=3.0.0.0";
+const SYDWMS_API_QUERY = "kav=100&av=100&hav=100&app=web";
 
 export const getExercisesId = async (
   category: string = "xingce",
@@ -146,9 +152,47 @@ export const getCategories = async (category: string) => {
       "https://tiku.fenbi.com/api/zhyynl/etRuleQuestion/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
   }
   if (category === SELECTENUM.SYDWMS) {
-    url = `https://tiku.fenbi.com/api/${category}/categories?&filter=giant&${CURRENT_WEB_API_QUERY}`;
+    url =
+      `https://tiku.fenbi.com/api/${category}/categories?&filter=giant&app=web&kav=125&av=127&hav=125&version=3.0.0.0`;
   }
   const res = await ajax<CategoryNode[]>("GET", url);
+  return res;
+};
+
+export const getSydwmsGiants = async (keypointId: number | string) => {
+  const url = `https://tiku.fenbi.com/api/sydwms/giants?keypointId=${keypointId}&${SYDWMS_API_QUERY}`;
+  const res = await ajax<SydwmsGiantPayload>("GET", url);
+  return res;
+};
+
+export const getSydwmsSolutions = async (
+  questionIds: Array<number | string>,
+) => {
+  const ids = questionIds.join(",");
+  const url = `https://tiku.fenbi.com/api/sydwms/universal/auth/solutions?type=9&questionIds=${ids}&${SYDWMS_API_QUERY}`;
+  const res = await ajax<SydwmsSolutionPayload>("GET", url);
+  return res;
+};
+
+export const getSydwmsEpisodes = async (
+  questionIds: Array<number | string>,
+) => {
+  const ids = questionIds.join(",");
+  const url = `https://ke.fenbi.com/api/gwy/v3/episodes/tiku_episodes_with_multi_type?tiku_ids=${ids}&tiku_prefix=sydwms&tiku_type=5&${SYDWMS_API_QUERY}`;
+  const res = await ajax<SydwmsEpisodePayload>("GET", url);
+  return res;
+};
+
+export const getSydwmsEpisodeMeta = async (episodeId: number | string) => {
+  const url = `https://ke.fenbi.com/api/gwy/v3/episodes/${episodeId}/mediafile/meta?content_id=0&biz_type=100&${SYDWMS_API_QUERY}`;
+  const res = await ajax<SydwmsEpisodeMetaPayload>("GET", url);
+  return res;
+};
+
+export const getSydwmsNotes = async (questionIds: Array<number | string>) => {
+  const ids = questionIds.join(",");
+  const url = `https://tiku.fenbi.com/api/sydwms/notes?questionIds=${ids}&${SYDWMS_API_QUERY}`;
+  const res = await ajax<SydwmsNotePayload>("GET", url);
   return res;
 };
 

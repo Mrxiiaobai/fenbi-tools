@@ -4,10 +4,17 @@ export type {
   CacheData as TCacheData,
   FenbiSetting as TSetting,
   HistoryExercise,
+  MaterialData,
   QuestionItem as TQuestionItem,
   QuestionPayload as TQuestionData,
   SolutionItem as TSolutionItem,
   SolutionPayload as TSolutionData,
+  SydwmsEpisodeItem,
+  SydwmsEpisodeMediaItem,
+  SydwmsGiantQuestion,
+  SydwmsInterviewDetailPayload,
+  SydwmsSolutionAccessory,
+  SydwmsSolutionItem,
   VscodeHostMessage,
 } from "../../shared/types";
 

@@ -3,6 +3,7 @@ import { Routes, Route, HashRouter } from "react-router-dom";
 import { Home } from "./pages/Index";
 import { History } from "./pages/History";
 import { Detail } from "./pages/Detail";
+import { SydwmsDetail } from "./pages/SydwmsDetail";
 import { Answer } from "./pages/Answer";
 import { SettingProvider } from "./components/hooks";
 
@@ -16,6 +17,7 @@ export const App = () => {
           <Routes>
             <Route index path="/" element={<Home />} />
             <Route path="/detail" element={<Detail />} />
+            <Route path="/sydwms-detail" element={<SydwmsDetail />} />
             <Route path="/history" element={<History />} />
             <Route path="/answer" element={<Answer />} />
             {/* <Route path="*" element={<NotFound />} /> */}
