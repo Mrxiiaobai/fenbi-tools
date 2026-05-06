@@ -21,7 +21,7 @@ import {
   SELECTENUM,
   categoryOptions,
   getCategoryRouteConfig,
-  isEssayCategory,
+  isInterviewCategory,
 } from "../utils/constant";
 import { getVscodeApi } from "../utils/vscodeApi";
 import { modifyArrayToTree } from "../utils/modifyArray";
@@ -214,7 +214,11 @@ export const Home = () => {
     const category = setting.categoryId || "xingce";
     const categoryConfig = getCategoryRouteConfig(category);
     pageInit({ categoryId: category });
-    getHistory({ count: 15, categoryId: categoryConfig.historyCategoryId, category });
+    getHistory({
+      count: 15,
+      categoryId: categoryConfig.historyCategoryId,
+      category,
+    });
   }, []);
 
   const pageInit = (postData?: { categoryId?: string }) => {
@@ -228,9 +232,10 @@ export const Home = () => {
     const key = e.id;
 
     setLoading(true);
-    if (setting.categoryId === SELECTENUM.SYDWMS) {
+    if (isInterviewCategory(setting.categoryId)) {
       navigate("/sydwms-detail", {
         state: {
+          category: setting.categoryId,
           keypointId: key,
           title: e.name,
           questionIndex: 0,
@@ -259,6 +264,8 @@ export const Home = () => {
 
   const goHistory = () => {
     const category = setting.categoryId || "xingce";
+    if (isInterviewCategory(category)) return;
+
     const categoryConfig = getCategoryRouteConfig(category);
     navigate("/history", {
       state: {
@@ -358,6 +365,11 @@ export const Home = () => {
     categoryId?: number;
   }) => {
     const currentCategory = category || setting.categoryId;
+    if (isInterviewCategory(currentCategory)) {
+      setHistoryList([]);
+      return;
+    }
+
     const categoryConfig = getCategoryRouteConfig(currentCategory);
     vscode.postMessage({
       command: "history",
@@ -536,23 +548,27 @@ export const Home = () => {
               ps：申论功能需要前往粉笔官网充vip才能交卷，与该插件无关，由于没有vip，交卷及后续功能暂无法支持，感谢理解！
             </div>
           )}
-          {currentCategory === SELECTENUM.SYDWMS && (
+          {isInterviewCategory(currentCategory) && (
             <div>
               ps：面试功能需要前往粉笔官网充vip才能显示并查看解析视频、详细解析，没有vip仅显示问题与部分解析，与该插件无关。
             </div>
           )}
           <div className="menu-container">
-            <HistoryCard
-              onClick={goHistory}
-              data={historyList}
-              goExercise={(data) => {
-                goDetail({
-                  type: 1,
-                  combineKey: data?.key,
-                });
-              }}
-            />
-            <QuestionCount onChange={onQuestionCountChange} />
+            {!isInterviewCategory(currentCategory) && (
+              <HistoryCard
+                onClick={goHistory}
+                data={historyList}
+                goExercise={(data) => {
+                  goDetail({
+                    type: 1,
+                    combineKey: data?.key,
+                  });
+                }}
+              />
+            )}
+            {!isInterviewCategory(currentCategory) && (
+              <QuestionCount onChange={onQuestionCountChange} />
+            )}
             <CustomTree treeData={treeData} />
           </div>
         </div>

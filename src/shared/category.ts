@@ -5,6 +5,7 @@ export enum SELECTENUM {
   SYDW = "sydw",
   ZHYYNL = "zhyynl",
   SYDWMS = "sydwms",
+  GWYMS = "gwyms",
 }
 
 export type AnswerMode = "objective" | "essay";
@@ -67,6 +68,14 @@ export const categoryRouteConfigMap: Record<string, CategoryRouteConfig> = {
     apiCategory: SELECTENUM.SYDWMS,
     historyCategoryId: 4,
   },
+  [SELECTENUM.GWYMS]: {
+    routecs: SELECTENUM.GWYMS,
+    courseSetPrefix: SELECTENUM.GWYMS,
+    tikuPrefix: SELECTENUM.GWYMS,
+    answerMode: "essay",
+    apiCategory: SELECTENUM.GWYMS,
+    historyCategoryId: 4,
+  },
 };
 
 export const getCategoryRouteConfig = (
@@ -89,6 +98,10 @@ export const isCareerCategory = (category?: string) => {
     category === SELECTENUM.ZHYYNL ||
     category === SELECTENUM.SYDWMS
   );
+};
+
+export const isInterviewCategory = (category?: string) => {
+  return category === SELECTENUM.SYDWMS || category === SELECTENUM.GWYMS;
 };
 
 export const getFavoriteQuizCourseSetPrefix = (category?: string) => {

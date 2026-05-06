@@ -23,6 +23,7 @@ import {
 } from "../types";
 import { useVscodeMessage } from "../hooks/useVscodeMessage";
 import { getVscodeApi } from "../utils/vscodeApi";
+import { SELECTENUM } from "../utils/constant";
 import { setImg } from "../utils/setImg";
 import "../style/detail.less";
 
@@ -34,6 +35,7 @@ const HLS_SCRIPT_URL =
 let hlsScriptPromise: Promise<void> | undefined;
 
 interface SydwmsDetailLocationState {
+  category?: string;
   keypointId?: number | string;
   title?: string;
   questionIndex?: number;
@@ -712,8 +714,12 @@ export const SydwmsDetail = () => {
   const [questionNumberInput, setQuestionNumberInput] = React.useState("1");
   const navigate = useNavigate();
   const location = useLocation();
-  const { keypointId, title, questionIndex } = (location.state ||
-    {}) as SydwmsDetailLocationState;
+  const {
+    category = SELECTENUM.SYDWMS,
+    keypointId,
+    title,
+    questionIndex,
+  } = (location.state || {}) as SydwmsDetailLocationState;
   const routeQuestionIndex = Math.max(Number(questionIndex) || 0, 0);
   const currentQuestionIndex = detail?.questionIndex ?? routeQuestionIndex;
   const questionCount = detail?.questionCount || 0;
@@ -731,9 +737,9 @@ export const SydwmsDetail = () => {
     window.scrollTo(0, 0);
     vscode.postMessage({
       command: "getSydwmsInterviewDetail",
-      postData: { keypointId, questionIndex: routeQuestionIndex },
+      postData: { category, keypointId, questionIndex: routeQuestionIndex },
     });
-  }, [keypointId, routeQuestionIndex]);
+  }, [category, keypointId, routeQuestionIndex]);
 
   React.useEffect(() => {
     setQuestionNumberInput(String(currentQuestionIndex + 1));
@@ -749,6 +755,7 @@ export const SydwmsDetail = () => {
     navigate("/sydwms-detail", {
       replace: true,
       state: {
+        category,
         keypointId,
         title,
         questionIndex: nextQuestionIndex,
@@ -799,6 +806,7 @@ export const SydwmsDetail = () => {
   useVscodeMessage((message) => {
     if (message.command === "sydwmsInterviewDetail") {
       const payload = message.data as SydwmsInterviewDetailPayload;
+      if (payload.category && payload.category !== category) return;
       if (payload.questionIndex !== routeQuestionIndex) return;
       setLoading(false);
       setDetail(payload);

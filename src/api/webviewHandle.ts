@@ -4,6 +4,7 @@ import {
   getCategoryRouteConfig,
   getFavoriteQuizCourseSetPrefix,
   isEssayCategory,
+  isInterviewCategory,
   SELECTENUM,
 } from "../shared/category";
 import {
@@ -115,6 +116,7 @@ interface UpdateSettingsPostData {
 }
 
 interface SydwmsInterviewPostData {
+  category?: string;
   keypointId?: number | string;
   questionIndex?: number;
 }
@@ -506,8 +508,13 @@ export default class WebviewHandle {
       throw new Error("缺少面试题目 ID");
     }
 
+    const requestedCategory = params.category || SELECTENUM.SYDWMS;
+    const category = isInterviewCategory(requestedCategory)
+      ? requestedCategory
+      : SELECTENUM.SYDWMS;
     const giantsResult: SydwmsGiantPayload = await getSydwmsGiants(
       params.keypointId,
+      category,
     );
     const questionCount = giantsResult.length;
     const requestedQuestionIndex = Math.floor(Number(params.questionIndex) || 0);
@@ -523,15 +530,16 @@ export default class WebviewHandle {
 
     const questionIds = [questionId];
     console.log("[FenbiTools:Sydwms] load interview detail", {
+      category,
       keypointId: params.keypointId,
       questionId,
       questionIndex,
       questionCount,
     });
     const [solutionsResult, episodesResult, notesResult] = await Promise.all([
-      getSydwmsSolutions(questionIds),
-      getSydwmsEpisodes(questionIds),
-      getSydwmsNotes(questionIds).catch(() => undefined),
+      getSydwmsSolutions(questionIds, category),
+      getSydwmsEpisodes(questionIds, category),
+      getSydwmsNotes(questionIds, category).catch(() => undefined),
     ]);
 
     const questions = flattenResponseItems<SydwmsSolutionItem>(
@@ -543,6 +551,7 @@ export default class WebviewHandle {
     );
 
     console.log("[FenbiTools:Sydwms] interview detail loaded", {
+      category,
       keypointId: params.keypointId,
       questionId,
       questionIndex,
@@ -554,6 +563,7 @@ export default class WebviewHandle {
     });
 
     const payload: SydwmsInterviewDetailPayload = {
+      category,
       materials,
       questions,
       solutions: questions,

@@ -5,6 +5,7 @@ export {
   getCategoryRouteConfig,
   isCareerCategory,
   isEssayCategory,
+  isInterviewCategory,
   SELECTENUM,
 } from "../../shared/category";
 export type { CategoryRouteConfig } from "../../shared/category";
@@ -35,6 +36,10 @@ export const categoryOptions = [
   {
     label: "申论",
     value: SELECTENUM.SHENLUN,
+  },
+  {
+    label: "公务员面试",
+    value: SELECTENUM.GWYMS,
   },
   {
     label: "事业编笔试",

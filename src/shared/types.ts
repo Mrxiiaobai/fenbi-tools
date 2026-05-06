@@ -225,6 +225,7 @@ export interface SydwmsNotePayload {
 }
 
 export interface SydwmsInterviewDetailPayload {
+  category?: string;
   materials: Array<MaterialData | null>;
   questions: SydwmsSolutionItem[];
   solutions: SydwmsSolutionItem[];
