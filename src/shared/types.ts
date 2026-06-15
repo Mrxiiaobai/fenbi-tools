@@ -123,13 +123,59 @@ export interface QuestionPayload {
   combinKey?: string;
   questions?: QuestionItem[];
   materials?: Array<MaterialData | null>;
+  questionCount?: number;
+  errorPagination?: ErrorPracticePagination;
 }
 
 export interface SolutionPayload extends QuestionPayload {
   solutions?: SolutionItem[];
-  questionCount?: number;
   correctCount?: number;
 }
+
+export interface ErrorKeypointNode extends CategoryNode {
+  children?: ErrorKeypointNode[];
+  childrenLabels?: ErrorKeypointNode[] | null;
+  categoryId?: number | string;
+  keypointId?: number | string;
+  questionIds?: Array<number | string>;
+  wrongCount?: number;
+}
+
+export type ErrorKeypointTreeResponse = ErrorKeypointNode[];
+
+export interface ErrorPracticePagination {
+  categoryId?: number | string;
+  page?: number;
+  limit?: number;
+  total?: number;
+  questionIds?: string[];
+}
+
+export type ErrorQuestionIdsResponse =
+  | Array<number | string>
+  | {
+      data?: unknown;
+      datas?: unknown;
+      questionIds?: Array<number | string>;
+      ids?: Array<number | string>;
+      items?: Array<number | string>;
+      list?: Array<number | string>;
+      total?: number;
+      totalCount?: number;
+      count?: number;
+      [key: string]: unknown;
+    };
+
+export type ErrorSolutionsResponse =
+  | SolutionItem[]
+  | {
+      data?: SolutionItem[] | Record<string, SolutionItem>;
+      datas?: SolutionItem[];
+      solutions?: SolutionItem[];
+      materials?: Array<MaterialData | null>;
+      card?: QuestionCard;
+      [key: string]: unknown;
+    };
 
 export interface SydwmsGiantQuestion extends QuestionItem {
   questionId?: number | string;

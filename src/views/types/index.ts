@@ -2,6 +2,7 @@ import type { MaterialData } from "../../shared/types";
 
 export type {
   CacheData as TCacheData,
+  ErrorKeypointNode,
   FenbiSetting as TSetting,
   HistoryExercise,
   MaterialData,

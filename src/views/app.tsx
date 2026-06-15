@@ -5,6 +5,8 @@ import { History } from "./pages/History";
 import { Detail } from "./pages/Detail";
 import { SydwmsDetail } from "./pages/SydwmsDetail";
 import { Answer } from "./pages/Answer";
+import { Errors } from "./pages/Errors";
+import { ErrorsDetail } from "./pages/ErrorsDetail";
 import { SettingProvider } from "./components/hooks";
 
 import "./style/index.less";
@@ -20,6 +22,8 @@ export const App = () => {
             <Route path="/sydwms-detail" element={<SydwmsDetail />} />
             <Route path="/history" element={<History />} />
             <Route path="/answer" element={<Answer />} />
+            <Route path="/errors" element={<Errors />} />
+            <Route path="/errors-detail" element={<ErrorsDetail />} />
             {/* <Route path="*" element={<NotFound />} /> */}
           </Routes>
         </HashRouter>

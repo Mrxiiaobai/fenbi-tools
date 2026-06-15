@@ -1,9 +1,10 @@
 import * as React from "react";
+import { Button, Checkbox, Radio, RadioChangeEvent, Space } from "antd";
 import { TMaterials, TQuestionItem, TSolutionItem } from "../types";
-import { Button, Radio, RadioChangeEvent, Space } from "antd";
 import { radioMap } from "../utils/constant";
 import { setImg } from "../utils/setImg";
 import { useSetting } from "../components/hooks";
+import { normalizeChoice, parseChoiceIndexes } from "../../shared/answerChoice";
 
 type QuestionRenderItem = TQuestionItem | TSolutionItem;
 
@@ -11,10 +12,37 @@ interface TQuestionItemProps {
   data: QuestionRenderItem[];
   materials: TMaterials[];
   index: number;
-  onChange: (e: RadioChangeEvent, item: QuestionRenderItem, index: number) => void;
+  onChange: (
+    e: RadioChangeEvent,
+    item: QuestionRenderItem,
+    index: number,
+  ) => void;
+  questionNumberOffset?: number;
 }
+
+const createAnswerChangeEvent = (value: number | string) => {
+  return { target: { value } } as RadioChangeEvent;
+};
+
+const getChoiceText = (choiceIndex: number) => {
+  return radioMap[choiceIndex + 1] || String(choiceIndex + 1);
+};
+
+const getChoiceLabel = (
+  choice: string | number | undefined,
+  multiple: boolean,
+) => {
+  return parseChoiceIndexes(choice, multiple).map(getChoiceText).join("、");
+};
+
 export const QuestionItem = (props: TQuestionItemProps) => {
-  const { data = [], materials = [], onChange, index: _index } = props;
+  const {
+    data = [],
+    materials = [],
+    onChange,
+    index: _index,
+    questionNumberOffset = 0,
+  } = props;
 
   const [excludeMap, setExcludeMap] = React.useState<Record<string, boolean>>(
     {},
@@ -33,6 +61,18 @@ export const QuestionItem = (props: TQuestionItemProps) => {
         ></div>
       )} */}
       {data.map((ele: QuestionRenderItem, index: number) => {
+        const isMultiple = ele.type === 2;
+        const questionTypeText = isMultiple ? "多选题" : "单选题";
+        const userChoice = ele?.userAnswer?.choice;
+        const correctChoice = ele?.correctAnswer?.choice;
+        const hasUserChoice =
+          userChoice !== undefined &&
+          userChoice !== null &&
+          String(userChoice).trim() !== "";
+        const userChoiceLabel = getChoiceLabel(userChoice, isMultiple);
+        const correctChoiceLabel = getChoiceLabel(correctChoice, isMultiple);
+        const isCorrect = userChoice === correctChoice;
+
         return (
           <div key={ele.globalId || ele.id || index}>
             {(materials || []).length > 0 && (
@@ -45,7 +85,8 @@ export const QuestionItem = (props: TQuestionItemProps) => {
             )}
             <div className="question-item">
               <span>
-                {index + 1}、<span>单选题</span>
+                {questionNumberOffset + index + 1}、
+                <span>{questionTypeText}</span>
               </span>
               <div
                 dangerouslySetInnerHTML={{
@@ -55,69 +96,110 @@ export const QuestionItem = (props: TQuestionItemProps) => {
 
               <div className="answer-item">
                 {(ele.accessories || []).map((access, ind: number) => {
+                  const groupKey = `${ele.globalId || ele.id || index}-${ind}`;
+                  const groupStyle: React.CSSProperties = {
+                    display: "flex",
+                    flexDirection: "column",
+                    // gap: 8,
+                  };
+                  const options = (access?.options || []).map(
+                    (option, index2: number) => {
+                      const newOption = setImg(option);
+                      const key = `${index}-${ind}-${index2}`;
+                      const excluded = excludeMap[key];
+
+                      return (
+                        <Space
+                          key={key}
+                          style={{ justifyContent: "space-between" }}
+                        >
+                          {isMultiple ? (
+                            <Checkbox value={index2}>
+                              <div
+                                style={{
+                                  textDecoration: excluded
+                                    ? "line-through"
+                                    : "",
+                                }}
+                              >
+                                <span>{radioMap[index2 + 1]}、</span>
+                                <span
+                                  dangerouslySetInnerHTML={{
+                                    __html: newOption,
+                                  }}
+                                ></span>
+                              </div>
+                            </Checkbox>
+                          ) : (
+                            <Radio value={index2}>
+                              <div
+                                style={{
+                                  textDecoration: excluded
+                                    ? "line-through"
+                                    : "",
+                                }}
+                              >
+                                <span>{radioMap[index2 + 1]}、</span>
+                                <span
+                                  dangerouslySetInnerHTML={{
+                                    __html: newOption,
+                                  }}
+                                ></span>
+                              </div>
+                            </Radio>
+                          )}
+                          {setting.needLineThrough ? (
+                            <Button
+                              size="small"
+                              onClick={() => {
+                                const key = `${index}-${ind}-${index2}`;
+                                setExcludeMap((prev) => ({
+                                  ...prev,
+                                  [key]: excluded ? false : true,
+                                }));
+                              }}
+                            >
+                              {excluded ? "重置" : "排除"}
+                            </Button>
+                          ) : (
+                            <></>
+                          )}
+                        </Space>
+                      );
+                    },
+                  );
+
+                  if (isMultiple) {
+                    return (
+                      <Checkbox.Group
+                        key={groupKey}
+                        style={groupStyle}
+                        onChange={(checkedValues) => {
+                          onChange(
+                            createAnswerChangeEvent(
+                              normalizeChoice(checkedValues, true),
+                            ),
+                            ele,
+                            index,
+                          );
+                        }}
+                        defaultValue={parseChoiceIndexes(userChoice, true)}
+                      >
+                        {options}
+                      </Checkbox.Group>
+                    );
+                  }
+
                   return (
                     <Radio.Group
-                      key={`${ele.globalId || ele.id || index}-${ind}`}
-                      style={{
-                        display: "flex",
-                        flexDirection: "column",
-                        // gap: 8,
-                      }}
+                      key={groupKey}
+                      style={groupStyle}
                       onChange={(e) => {
                         onChange(e, ele, index);
                       }}
-                      defaultValue={
-                        ele?.userAnswer?.choice
-                          ? Number(ele?.userAnswer?.choice)
-                          : undefined
-                      }
+                      defaultValue={parseChoiceIndexes(userChoice)[0]}
                     >
-                      {(access?.options || []).map(
-                        (option, index2: number) => {
-                          const newOption = setImg(option);
-                          const key = `${index}-${ind}-${index2}`;
-                          const excluded = excludeMap[key];
-                          return (
-                            <Space
-                              key={key}
-                              style={{ justifyContent: "space-between" }}
-                            >
-                              <Radio value={index2}>
-                                <div
-                                  style={{
-                                    textDecoration: excluded
-                                      ? "line-through"
-                                      : "",
-                                  }}
-                                >
-                                  <span>{radioMap[index2 + 1]}、</span>
-                                  <span
-                                    dangerouslySetInnerHTML={{
-                                      __html: newOption,
-                                    }}
-                                  ></span>
-                                </div>
-                              </Radio>
-                              {setting.needLineThrough ? (
-                                <Button
-                                  size="small"
-                                  onClick={() => {
-                                    const key = `${index}-${ind}-${index2}`;
-                                    setExcludeMap((prev) => ({
-                                      ...prev,
-                                      [key]: excluded ? false : true,
-                                    }));
-                                  }}
-                                >
-                                  {excluded ? "重置" : "排除"}
-                                </Button>
-                              ) : (
-                                <></>
-                              )}
-                            </Space>
-                          );
-                        },
-                      )}
+                      {options}
                     </Radio.Group>
                   );
                 })}
@@ -126,21 +208,18 @@ export const QuestionItem = (props: TQuestionItemProps) => {
               {"solution" in ele && ele.solution && (
                 <div className="solution-container">
                   <p>
-                    <span
-                      className={
-                        ele?.userAnswer?.choice === ele?.correctAnswer?.choice
-                          ? "green"
-                          : "red"
-                      }
-                      style={{
-                        marginRight: "5px",
-                      }}
-                    >
-                      你的答案：{radioMap[Number(ele?.userAnswer?.choice) + 1]}
-                    </span>
+                    {ele?.userAnswer?.choice !== undefined && (
+                      <span
+                        className={isCorrect ? "green" : "red"}
+                        style={{
+                          marginRight: "5px",
+                        }}
+                      >
+                        你的答案：{userChoiceLabel}
+                      </span>
+                    )}
                     <span className="green">
-                      正确答案：
-                      {radioMap[Number(ele?.correctAnswer?.choice) + 1]}
+                      正确答案：{correctChoiceLabel}
                     </span>
                   </p>
                   <div className="green" style={{ fontWeight: "bold" }}>

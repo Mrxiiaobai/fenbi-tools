@@ -60,6 +60,16 @@ const settingControlStyle: React.CSSProperties = {
   width: "100%",
 };
 
+const settingHintStyle: React.CSSProperties = {
+  border: "1px solid #f0f0f0",
+  borderRadius: 6,
+  padding: "8px 10px",
+  background: "#fafafa",
+  color: "#595959",
+  fontSize: 12,
+  lineHeight: 1.6,
+};
+
 const settingPanelActionsStyle: React.CSSProperties = {
   display: "flex",
   justifyContent: "flex-end",
@@ -95,8 +105,6 @@ const settingsModalStyles = {
 const SettingsPanel = ({
   settingsDraft,
   updateSettingsDraft,
-  saveSettings,
-  closeSettings,
 }: {
   settingsDraft: TSetting;
   updateSettingsDraft: <TKey extends keyof TSetting>(
@@ -108,6 +116,13 @@ const SettingsPanel = ({
 }) => {
   return (
     <div style={settingPanelStyle}>
+      <div>
+        <span style={settingLabelStyle}>Cookie 设置</span>
+        <div style={settingHintStyle}>
+          请前往首选项-&gt;设置-&gt; 搜索fenbi，设置cookie
+        </div>
+      </div>
+
       <div>
         <span style={settingLabelStyle}>字体颜色</span>
         <ColorPicker
@@ -185,6 +200,14 @@ const isCareerCategory = (category?: string) => {
 };
 
 const canShowSmartPaper = (category?: string) => {
+  return (
+    category === SELECTENUM.XINGCE ||
+    category === SELECTENUM.SYZC ||
+    category === SELECTENUM.SYDW
+  );
+};
+
+const canShowErrors = (category?: string) => {
   return (
     category === SELECTENUM.XINGCE ||
     category === SELECTENUM.SYZC ||
@@ -271,6 +294,14 @@ export const Home = () => {
       state: {
         count: 15,
         categoryId: categoryConfig.historyCategoryId,
+      },
+    });
+  };
+
+  const goErrors = () => {
+    navigate("/errors", {
+      state: {
+        category: setting.categoryId || SELECTENUM.XINGCE,
       },
     });
   };
@@ -522,6 +553,15 @@ export const Home = () => {
           )}
           {canShowSmartPaper(currentCategory) && (
             <Flex justify="flex-start" align="center" gap={8} style={{ margin: "0 10px 10px" }}>
+              {canShowErrors(currentCategory) && (
+                <Button
+                  type="link"
+                  style={{ borderColor: "white" }}
+                  onClick={goErrors}
+                >
+                  我的错题
+                </Button>
+              )}
               <Button
                 type="link"
                 style={{ borderColor: "white" }}

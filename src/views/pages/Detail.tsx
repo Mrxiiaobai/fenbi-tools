@@ -35,6 +35,7 @@ export const Detail = () => {
   const [modal, contextHolder] = Modal.useModal();
   const [isFirst, setFirst] = React.useState(false);
   const [startTime, setStartTime] = React.useState(0);
+  const answerTimerRef = React.useRef(Date.now());
   const [loading, setLoading] = React.useState(true);
 
   const [page, setPage] = React.useState<number>(1);
@@ -68,10 +69,22 @@ export const Detail = () => {
   React.useEffect(() => {
     if (isFirst) return;
     if ((questionData?.questions || []).length > 0) {
+      const now = Date.now();
       setFirst(true);
-      setStartTime(Date.now());
+      setStartTime(now);
+      answerTimerRef.current = now;
     }
   }, [questionData?.questions]);
+
+  const getAnswerTime = React.useCallback(() => {
+    const now = Date.now();
+    const time = Math.max(
+      0,
+      Math.floor((now - answerTimerRef.current) / 1000),
+    );
+    answerTimerRef.current = now;
+    return time;
+  }, []);
 
   const getQuestion = ({
     category,
@@ -120,6 +133,7 @@ export const Detail = () => {
       postData: {
         ...item,
         startTime: startTime,
+        time: getAnswerTime(),
         combineKey: combineKey,
         category: setting.categoryId,
         answer: e.target.value,
@@ -135,6 +149,7 @@ export const Detail = () => {
       postData: {
         ...item,
         startTime: startTime,
+        time: getAnswerTime(),
         combineKey: combineKey,
         category: setting.categoryId,
         answer: text,

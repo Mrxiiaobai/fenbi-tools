@@ -34,7 +34,6 @@ const ajax = <TResponse = unknown>(
   const config = vscode.workspace.getConfiguration("fenbiTools");
   if (!config.cookie) {
     const error = new FenbiRequestError("未设置 cookie", "MISSING_COOKIE");
-    vscode.window.showErrorMessage(error.message);
     return Promise.reject(error);
   }
 
@@ -72,7 +71,6 @@ const ajax = <TResponse = unknown>(
             "HTTP_ERROR",
             statusCode,
           );
-          vscode.window.showErrorMessage(error.message);
           reject(error);
           return;
         }
@@ -91,7 +89,6 @@ const ajax = <TResponse = unknown>(
           ? error
           : new FenbiRequestError(error.message, "NETWORK_ERROR");
       reject(requestError);
-      vscode.window.showErrorMessage(requestError.message);
     });
 
     if (methods === "POST" || methods === "PUT") {

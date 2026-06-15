@@ -32,6 +32,7 @@ interface AnswerLocationState {
 export const Answer = () => {
   const [modal, contextHolder] = Modal.useModal();
   const [startTime] = React.useState(() => Date.now());
+  const answerTimerRef = React.useRef(startTime);
   const [loading, setLoading] = React.useState(true);
 
   const page = 1;
@@ -76,6 +77,16 @@ export const Answer = () => {
     navigate(-1);
   };
 
+  const getAnswerTime = React.useCallback(() => {
+    const now = Date.now();
+    const time = Math.max(
+      0,
+      Math.floor((now - answerTimerRef.current) / 1000),
+    );
+    answerTimerRef.current = now;
+    return time;
+  }, []);
+
   const onShenlunChange = (text: string, item: TQuestionItem | TSolutionItem) => {
     vscode.postMessage({
       command: "answer",
@@ -83,6 +94,7 @@ export const Answer = () => {
       postData: {
         ...item,
         startTime: startTime,
+        time: getAnswerTime(),
         combineKey: combineKey,
         category: setting.categoryId,
         answer: text,

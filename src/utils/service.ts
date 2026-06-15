@@ -7,6 +7,9 @@ import { buildMaterialsForQuestions } from "../shared/materials";
 import {
   CacheData,
   CategoryNode,
+  ErrorKeypointTreeResponse,
+  ErrorQuestionIdsResponse,
+  ErrorSolutionsResponse,
   ExerciseKeyResponse,
   ExerciseResult,
   FavoriteQuizResponse,
@@ -160,6 +163,37 @@ export const getCategories = async (category: string) => {
       `https://tiku.fenbi.com/api/${category}/categories?&filter=giant&app=web&kav=125&av=127&hav=125&version=3.0.0.0`;
   }
   const res = await ajax<CategoryNode[]>("GET", url);
+  return res;
+};
+
+export const getErrorKeypointTree = async (
+  category: string = SELECTENUM.XINGCE,
+) => {
+  const url = `https://tiku.fenbi.com/api/${category}/errors/keypoint-tree?timeRange=0&order=desc&${CURRENT_WEB_API_QUERY}`;
+  const res = await ajax<ErrorKeypointTreeResponse>("GET", url);
+  return res;
+};
+
+export const getErrorQuestionIds = async (
+  category: string = SELECTENUM.XINGCE,
+  params: {
+    categoryId: number | string;
+    offset: number;
+    limit: number;
+  },
+) => {
+  const url = `https://tiku.fenbi.com/api/${category}/questionIds?type=errors&categoryId=${params.categoryId}&offset=${params.offset}&limit=${params.limit}&order=desc&timeRange=0&${CURRENT_WEB_API_QUERY}`;
+  const res = await ajax<ErrorQuestionIdsResponse>("GET", url);
+  return res;
+};
+
+export const getErrorSolutions = async (
+  category: string = SELECTENUM.XINGCE,
+  questionIds: Array<number | string>,
+) => {
+  const ids = questionIds.join(",");
+  const url = `https://tiku.fenbi.com/api/${category}/universal/auth/solutions?type=1&questionIds=${ids}&${CURRENT_WEB_API_QUERY}`;
+  const res = await ajax<ErrorSolutionsResponse>("GET", url);
   return res;
 };
 

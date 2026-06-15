@@ -8,6 +8,10 @@ import {
   SELECTENUM,
 } from "../shared/category";
 import {
+  ErrorKeypointTreeResponse,
+  ErrorQuestionIdsResponse,
+  ErrorPracticePagination,
+  ErrorSolutionsResponse,
   ExerciseResult,
   FenbiAnswer,
   FavoriteQuizResponseData,
@@ -33,6 +37,9 @@ import {
   getCache,
   getCategories,
   getCurrent,
+  getErrorKeypointTree,
+  getErrorQuestionIds,
+  getErrorSolutions,
   getExercisesId,
   getExercisesUrl,
   getHistory,
@@ -69,6 +76,20 @@ interface ChangeCategoryPostData {
   categoryId?: string;
 }
 
+interface ErrorKeypointTreePostData {
+  category?: string;
+}
+
+interface ErrorPracticePostData {
+  category?: string;
+  categoryId?: number | string;
+  questionIds?: Array<number | string>;
+  fallbackQuestionIds?: Array<number | string>;
+  page?: number;
+  limit?: number;
+  total?: number;
+}
+
 interface QuestionPostData {
   category?: string;
   combineKey?: string;
@@ -82,9 +103,11 @@ interface SmartQuestionPostData extends QuestionPostData {
 interface AnswerPostData {
   category?: string;
   combineKey?: string;
+  id?: string | number;
   globalId?: string | number;
   answer?: string | number;
   startTime?: number;
+  time?: number;
   exerciseId?: number;
 }
 
@@ -135,6 +158,117 @@ const normalizeTemplateYearScope = (yearScope?: number) => {
   return [0, 5, 10].includes(Number(yearScope)) ? Number(yearScope) : 0;
 };
 
+const dedupeIds = (ids: Array<number | string> = []) => {
+  return Array.from(
+    new Set(ids.map((id) => String(id || "").trim()).filter(Boolean)),
+  );
+};
+
+const chunkIds = (ids: string[], size = 100) => {
+  const chunks: string[][] = [];
+  for (let index = 0; index < ids.length; index += size) {
+    chunks.push(ids.slice(index, index + size));
+  }
+  return chunks;
+};
+
+const normalizeErrorPracticePage = (page?: number) => {
+  return Math.max(1, Math.floor(Number(page) || 1));
+};
+
+const normalizeErrorPracticeLimit = (limit?: number) => {
+  return Math.max(1, Math.min(100, Math.floor(Number(limit) || 10)));
+};
+
+const normalizeAnswerTime = (params: AnswerPostData) => {
+  const explicitTime = Number(params.time);
+  if (Number.isFinite(explicitTime) && explicitTime >= 0) {
+    return Math.floor(explicitTime);
+  }
+
+  return Math.floor((Date.now() - (params.startTime || Date.now())) / 1000);
+};
+
+const getAnswerQuestionId = (params: AnswerPostData) => {
+  return Number(params.globalId || params.id || 0);
+};
+
+const flattenQuestionIds = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.reduce<string[]>((ids, item) => {
+      return ids.concat(flattenQuestionIds(item));
+    }, []);
+  }
+
+  if (typeof value === "number") {
+    return [String(value)];
+  }
+
+  if (typeof value === "string") {
+    return value
+      .split(",")
+      .map((id) => id.trim())
+      .filter(Boolean);
+  }
+
+  if (!value || typeof value !== "object") return [];
+
+  const record = value as Record<string, unknown>;
+  const candidateKeys = [
+    "questionIds",
+    "ids",
+    "globalIds",
+    "questionId",
+    "question_id",
+    "globalId",
+    "global_id",
+    "id",
+    "records",
+    "rows",
+    "items",
+    "list",
+    "result",
+    "values",
+    "questions",
+    "data",
+    "datas",
+  ];
+
+  return candidateKeys.reduce<string[]>((ids, key) => {
+    return key in record ? ids.concat(flattenQuestionIds(record[key])) : ids;
+  }, []);
+};
+
+const extractErrorQuestionTotal = (value: unknown): number | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+
+  const record = value as Record<string, unknown>;
+  const directTotal = ["total", "totalCount", "count"].find((key) => {
+    return typeof record[key] === "number";
+  });
+  if (directTotal) return Number(record[directTotal]);
+
+  const nestedKeys = ["data", "datas", "pagination", "page"];
+  for (const key of nestedKeys) {
+    const total = extractErrorQuestionTotal(record[key]);
+    if (total !== undefined) return total;
+  }
+
+  return undefined;
+};
+
+const normalizeErrorQuestionIdsResponse = (
+  payload: ErrorQuestionIdsResponse,
+) => {
+  const questionIds = dedupeIds(flattenQuestionIds(payload));
+  const total = extractErrorQuestionTotal(payload) ?? questionIds.length;
+
+  return {
+    questionIds,
+    total,
+  };
+};
+
 const attachUserAnswers = <TItem extends QuestionItem | SolutionItem>(
   items: TItem[] | undefined,
   userAnswers?: UserAnswers,
@@ -153,6 +287,39 @@ const countCorrectAnswers = (solutions: SolutionItem[] = []) => {
   return solutions.filter((item) => {
     return item.userAnswer?.choice === item.correctAnswer?.choice;
   }).length;
+};
+
+const getQuestionIdentity = (item: QuestionItem | SolutionItem) => {
+  const record = item as QuestionItem & {
+    questionId?: number | string;
+    idStr?: number | string;
+  };
+
+  return String(
+    record.id || record.globalId || record.questionId || record.idStr || "",
+  );
+};
+
+const sortItemsByQuestionIds = <TItem extends QuestionItem | SolutionItem>(
+  items: TItem[],
+  questionIds: string[],
+) => {
+  const orderMap = new Map(questionIds.map((id, index) => [id, index]));
+
+  return items.slice().sort((left, right) => {
+    const leftOrder = orderMap.get(getQuestionIdentity(left));
+    const rightOrder = orderMap.get(getQuestionIdentity(right));
+
+    if (leftOrder === undefined && rightOrder === undefined) return 0;
+    if (leftOrder === undefined) return 1;
+    if (rightOrder === undefined) return -1;
+    return leftOrder - rightOrder;
+  });
+};
+
+const stripSolution = (item: SolutionItem): QuestionItem => {
+  const { solution: _solution, ...question } = item;
+  return question;
 };
 
 const flattenResponseItems = <TItem>(value: unknown): TItem[] => {
@@ -211,9 +378,10 @@ const getSydwmsEpisodesByQuestionId = (
   payload: unknown,
   questionId: number | string,
 ) => {
-  const data = payload && typeof payload === "object" && "data" in payload
-    ? (payload as Record<string, unknown>).data
-    : payload;
+  const data =
+    payload && typeof payload === "object" && "data" in payload
+      ? (payload as Record<string, unknown>).data
+      : payload;
   if (!data || typeof data !== "object") return [];
 
   const value = (data as Record<string, unknown>)[String(questionId)];
@@ -308,7 +476,9 @@ const attachEpisodeMeta = async (episodes: SydwmsEpisodeItem[]) => {
   );
 };
 
-const extractSydwmsMaterials = (payload: unknown): Array<MaterialData | null> => {
+const extractSydwmsMaterials = (
+  payload: unknown,
+): Array<MaterialData | null> => {
   if (!payload || typeof payload !== "object") return [];
 
   const record = payload as Record<string, unknown>;
@@ -330,6 +500,23 @@ const extractSydwmsMaterials = (payload: unknown): Array<MaterialData | null> =>
   return [];
 };
 
+const extractErrorMaterials = (
+  payloads: ErrorSolutionsResponse[],
+): Array<MaterialData | null> => {
+  return payloads.reduce<Array<MaterialData | null>>((materials, payload) => {
+    if (!payload || Array.isArray(payload) || typeof payload !== "object") {
+      return materials;
+    }
+
+    const record = payload as Record<string, unknown>;
+    if (Array.isArray(record.materials)) {
+      return materials.concat(record.materials as Array<MaterialData | null>);
+    }
+
+    return materials;
+  }, []);
+};
+
 export default class WebviewHandle {
   onDidReceiveMessage() {
     return webview.onDidReceiveMessage((message) => {
@@ -348,6 +535,21 @@ export default class WebviewHandle {
         return;
       case "changeCategory":
         await this.changeCategory((postData || {}) as ChangeCategoryPostData);
+        return;
+      case "getErrorKeypointTree":
+        await this.getErrorKeypointTree(
+          (postData || {}) as ErrorKeypointTreePostData,
+        );
+        return;
+      case "getErrorPracticeQuestion":
+        await this.getErrorPracticeQuestion(
+          (postData || {}) as ErrorPracticePostData,
+        );
+        return;
+      case "getErrorPracticeSolution":
+        await this.getErrorPracticeSolution(
+          (postData || {}) as ErrorPracticePostData,
+        );
         return;
       case "getQuestion":
         await this.getQuestion((postData || {}) as QuestionPostData);
@@ -401,10 +603,7 @@ export default class WebviewHandle {
   }
 
   private postError(error: unknown) {
-    webview.postMessage({
-      command: "message",
-      data: { message: getErrorMessage(error) || "操作失败" },
-    });
+    void vscode.window.showErrorMessage(getErrorMessage(error) || "操作失败");
   }
 
   async getHistory({
@@ -462,6 +661,118 @@ export default class WebviewHandle {
     await courseSetChange({ category: config.courseSetPrefix });
   }
 
+  async getErrorKeypointTree(params: ErrorKeypointTreePostData) {
+    const category = params.category || SELECTENUM.XINGCE;
+    const tree: ErrorKeypointTreeResponse =
+      await getErrorKeypointTree(category);
+
+    webview.postMessage({
+      command: "errorKeypointTree",
+      data: tree || [],
+    });
+  }
+
+  private async loadErrorPracticePage(params: ErrorPracticePostData) {
+    const category = params.category || SELECTENUM.XINGCE;
+    const page = normalizeErrorPracticePage(params.page);
+    const limit = normalizeErrorPracticeLimit(params.limit);
+    const offset = (page - 1) * limit;
+    let questionIds = dedupeIds(params.questionIds || []);
+    const fallbackQuestionIds = dedupeIds(params.fallbackQuestionIds || []);
+    const fallbackPageQuestionIds = fallbackQuestionIds.slice(
+      offset,
+      offset + limit,
+    );
+    let total =
+      Number(params.total) || fallbackQuestionIds.length || questionIds.length;
+
+    if (!questionIds.length && fallbackPageQuestionIds.length) {
+      questionIds = fallbackPageQuestionIds;
+    }
+
+    if (!questionIds.length) {
+      if (!params.categoryId) {
+        throw new Error("缺少错题知识点 ID，无法开始练习");
+      }
+
+      const questionIdsResult = await getErrorQuestionIds(category, {
+        categoryId: params.categoryId,
+        offset,
+        limit,
+      });
+      const normalized = normalizeErrorQuestionIdsResponse(questionIdsResult);
+      questionIds = normalized.questionIds;
+      total = total || normalized.total;
+
+      if (questionIds.length > limit) {
+        total = Math.max(total, questionIds.length);
+        questionIds = questionIds.slice(offset, offset + limit);
+      }
+    }
+
+    if (!questionIds.length) {
+      questionIds = fallbackPageQuestionIds;
+    }
+
+    if (!questionIds.length) {
+      throw new Error("当前页暂无错题");
+    }
+
+    const payloads = await Promise.all(
+      chunkIds(questionIds).map((ids) => getErrorSolutions(category, ids)),
+    );
+    const solutions = sortItemsByQuestionIds(
+      payloads.reduce<SolutionItem[]>((items, payload) => {
+        return items.concat(flattenResponseItems<SolutionItem>(payload));
+      }, []),
+      questionIds,
+    );
+
+    return {
+      pagination: {
+        categoryId: params.categoryId,
+        page,
+        limit,
+        total,
+        questionIds,
+      } as ErrorPracticePagination,
+      questionIds,
+      solutions,
+      materials: extractErrorMaterials(payloads),
+    };
+  }
+
+  async getErrorPracticeQuestion(params: ErrorPracticePostData) {
+    const { pagination, questionIds, solutions, materials } =
+      await this.loadErrorPracticePage(params);
+
+    webview.postMessage({
+      command: "errorPracticeQuestion",
+      data: {
+        questions: solutions.map(stripSolution),
+        materials,
+        questionCount: pagination.total || questionIds.length,
+        errorPagination: pagination,
+      } as QuestionPayload,
+    });
+  }
+
+  async getErrorPracticeSolution(params: ErrorPracticePostData) {
+    const { pagination, questionIds, solutions, materials } =
+      await this.loadErrorPracticePage(params);
+
+    webview.postMessage({
+      command: "errorPracticeSolution",
+      data: {
+        solutions,
+        materials,
+        questionCount: pagination.total || questionIds.length,
+        correctCount: 0,
+        errorPagination: pagination,
+      } as SolutionPayload,
+    });
+  }
+
   async getFavoriteQuizLocationName(category?: string) {
     const courseSetPrefix = getFavoriteQuizCourseSetPrefix(category);
     try {
@@ -517,7 +828,9 @@ export default class WebviewHandle {
       category,
     );
     const questionCount = giantsResult.length;
-    const requestedQuestionIndex = Math.floor(Number(params.questionIndex) || 0);
+    const requestedQuestionIndex = Math.floor(
+      Number(params.questionIndex) || 0,
+    );
     const questionIndex = Math.min(
       Math.max(requestedQuestionIndex, 0),
       Math.max(questionCount - 1, 0),
@@ -638,14 +951,18 @@ export default class WebviewHandle {
   }
 
   studyTime(params: AnswerPostData) {
-    if (!params.exerciseId) return;
+    const exerciseId = Number(params.exerciseId || 0);
+    const questionId = getAnswerQuestionId(params);
+    if (!exerciseId && !questionId) return;
 
     const config = getCategoryRouteConfig(params.category);
+    const answerTime = normalizeAnswerTime(params);
+    const studyTimeMs = Math.max(0, answerTime * 1000);
     void studyTime({
-      exerciseId: params.exerciseId,
-      questionId: 0,
-      startTime: Date.now(),
-      studyTime: 30000,
+      exerciseId,
+      questionId,
+      startTime: Date.now() - studyTimeMs,
+      studyTime: studyTimeMs,
       subType: 1,
       tikuPrefix: config.tikuPrefix,
     }).catch(() => undefined);
@@ -669,7 +986,7 @@ export default class WebviewHandle {
     await incr(params.category, params.combineKey, {
       answer,
       key: String(params.globalId),
-      time: Math.floor((Date.now() - (params.startTime || Date.now())) / 1000),
+      time: normalizeAnswerTime(params),
     });
   }
 
@@ -739,6 +1056,7 @@ export default class WebviewHandle {
     const url = vscode.Uri.parse(
       `https://www.fenbi.com/spa/tiku/report/exam/solution/${category}/${category}/${params.exerciseId}/2`,
     );
+    // https://spa.fenbi.com/ti/exam/solution/1_1_3loi47o?routecs=xingce
     void vscode.env.openExternal(url);
   }
 
