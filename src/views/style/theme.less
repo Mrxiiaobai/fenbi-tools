@@ -15,16 +15,16 @@
   img {
     background: #ffffff !important;
   }
-
-  .bg_transparent {
-    background: transparent !important;
-  }
 }
 
 *:not(.ant-switch):not(.ant-switch *):not(.ant-color-picker-panel *):not(
     .ant-color-picker-color-block *
-  ) {
+  ):not(.bg_transparent):not(.bg_transparent *) {
   background: var(--primary-backgroundColor) !important;
+}
+.bg_transparent,
+.bg_transparent * {
+  background: transparent !important;
 }
 
 body {
