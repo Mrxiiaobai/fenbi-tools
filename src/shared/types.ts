@@ -6,6 +6,10 @@ export interface FenbiSetting {
   categoryId?: string;
   needLineThrough?: boolean;
   fontSize?: number;
+  correctColor?: string;
+  wrongColor?: string;
+  buttonBorderColor?: string;
+  cardBorderColor?: string;
   canvasBrushColor?: string;
   canvasBrushWidth?: number;
   cookie?: string;

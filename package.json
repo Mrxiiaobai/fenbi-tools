@@ -3,7 +3,7 @@
   "displayName": "Fenbi Tools",
   "description": "粉笔考公&摸鱼学习、考公必备，支持自定义数量、刷题历史、申论等功能",
   "icon": "resources/dark/fish.png",
-  "version": "1.0.32",
+  "version": "1.0.33",
   "license": "ISC",
   "engines": {
     "vscode": "^1.96.0"
@@ -91,6 +91,21 @@
           "type": "number",
           "default": 12,
           "markdownDescription": "自定义字体大小（单位px），默认12，请修改后刷新"
+        },
+        "fenbiTools.correctColor": {
+          "type": "string",
+          "default": "#30c9a1",
+          "markdownDescription": "自定义解答页正确答案颜色，请填写色值"
+        },
+        "fenbiTools.wrongColor": {
+          "type": "string",
+          "default": "#ff4d4f",
+          "markdownDescription": "自定义解答页错误答案颜色，请填写色值"
+        },
+        "fenbiTools.buttonBorderColor": {
+          "type": "string",
+          "default": "#ffffff",
+          "markdownDescription": "自定义按钮、Card 和解析虚线框边框颜色，请填写色值"
         },
         "fenbiTools.canvasBrushColor": {
           "type": "string",

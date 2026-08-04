@@ -166,6 +166,36 @@ const SettingsPanel = ({
       </div>
 
       <div>
+        <span style={settingLabelStyle}>正确答案颜色</span>
+        <ColorPicker
+          size="small"
+          showText
+          value={String(settingsDraft.correctColor || "#30c9a1")}
+          onChange={(_, hex) => updateSettingsDraft("correctColor", hex)}
+        />
+      </div>
+
+      <div>
+        <span style={settingLabelStyle}>错误答案颜色</span>
+        <ColorPicker
+          size="small"
+          showText
+          value={String(settingsDraft.wrongColor || "#ff4d4f")}
+          onChange={(_, hex) => updateSettingsDraft("wrongColor", hex)}
+        />
+      </div>
+
+      <div>
+        <span style={settingLabelStyle}>按钮 / Card / 下拉框边框颜色</span>
+        <ColorPicker
+          size="small"
+          showText
+          value={String(settingsDraft.buttonBorderColor || "#ffffff")}
+          onChange={(_, hex) => updateSettingsDraft("buttonBorderColor", hex)}
+        />
+      </div>
+
+      <div>
         <span style={settingLabelStyle}>画板画笔颜色</span>
         <ColorPicker
           size="small"
@@ -343,6 +373,9 @@ export const Home = () => {
       backgroundColor: setting.backgroundColor || "#21222b",
       needLineThrough: Boolean(setting.needLineThrough),
       fontSize: Number(setting.fontSize) || 12,
+      correctColor: setting.correctColor || "#30c9a1",
+      wrongColor: setting.wrongColor || "#ff4d4f",
+      buttonBorderColor: setting.buttonBorderColor || setting.cardBorderColor || "#ffffff",
       canvasBrushColor: setting.canvasBrushColor || "red",
       canvasBrushWidth: Number(setting.canvasBrushWidth) || 3,
     });
@@ -367,6 +400,9 @@ export const Home = () => {
         backgroundColor: settingsDraft.backgroundColor || "#21222b",
         needLineThrough: Boolean(settingsDraft.needLineThrough),
         fontSize: Number(settingsDraft.fontSize) || 12,
+        correctColor: settingsDraft.correctColor || "#30c9a1",
+        wrongColor: settingsDraft.wrongColor || "#ff4d4f",
+        buttonBorderColor: settingsDraft.buttonBorderColor || "#ffffff",
         canvasBrushColor: settingsDraft.canvasBrushColor || "red",
         canvasBrushWidth: Number(settingsDraft.canvasBrushWidth) || 3,
       },
@@ -492,7 +528,7 @@ export const Home = () => {
             <Button
               type="link"
               size="small"
-              style={{ borderColor: "white" }}
+              style={{ borderColor: "var(--button-border-color)" }}
               onClick={openSettingsModal}
             >
               设置
@@ -500,7 +536,7 @@ export const Home = () => {
             <Button
               type="link"
               size="small"
-              style={{ borderColor: "white" }}
+              style={{ borderColor: "var(--button-border-color)" }}
               onClick={() => {
                 vscode.postMessage({
                   command: "openInBrowser",
@@ -515,7 +551,7 @@ export const Home = () => {
             <Button
               type="link"
               size="small"
-              style={{ borderColor: "white" }}
+              style={{ borderColor: "var(--button-border-color)" }}
               onClick={() => {
                 vscode.postMessage({
                   command: "openInBrowser",
@@ -556,7 +592,7 @@ export const Home = () => {
               {canShowErrors(currentCategory) && (
                 <Button
                   type="link"
-                  style={{ borderColor: "white" }}
+                  style={{ borderColor: "var(--button-border-color)" }}
                   onClick={goErrors}
                 >
                   我的错题
@@ -564,7 +600,7 @@ export const Home = () => {
               )}
               <Button
                 type="link"
-                style={{ borderColor: "white" }}
+                style={{ borderColor: "var(--button-border-color)" }}
                 onClick={() => {
                   goDetail({
                     mode: "quick",
@@ -575,7 +611,7 @@ export const Home = () => {
               </Button>
               <Button
                 type="link"
-                style={{ borderColor: "white" }}
+                style={{ borderColor: "var(--button-border-color)" }}
                 onClick={openSmartPaperModal}
               >
                 智能组卷

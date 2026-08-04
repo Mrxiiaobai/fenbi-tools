@@ -1,7 +1,11 @@
 :root {
-  --primary-color: #ffffff; /* 默认值 */
-  --primary-backgroundColor: #21222b; /* 默认值 */
-  --primary-fontSize: 12px; /* 默认值 */
+  --primary-color: #ffffff;
+  --primary-backgroundColor: #21222b;
+  --primary-fontSize: 12px;
+  --answer-correct-color: #30c9a1;
+  --answer-wrong-color: #ff4d4f;
+  --button-border-color: #ffffff;
+  --card-border-color: #ffffff;
 }
 
 * {
@@ -21,6 +25,16 @@
     .ant-color-picker-color-block *
   ):not(.bg_transparent):not(.bg_transparent *) {
   background: var(--primary-backgroundColor) !important;
+}
+
+.ant-btn,
+.ant-select-selector {
+  border-color: var(--button-border-color) !important;
+}
+
+.ant-card,
+.card-border {
+  border-color: var(--card-border-color) !important;
 }
 .bg_transparent,
 .bg_transparent * {

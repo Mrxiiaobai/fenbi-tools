@@ -32,6 +32,8 @@
 
 ![在这里插入图片描述](https://i-blog.csdnimg.cn/direct/99beb807d3f145f7ad90bd26515ac365.png)
 
+3. cookie可以在首选项设置搜索fenbi，找到cookie设置项填入即可
+
 # 隐私说明
 
 本插件不会以任何形式收集用户账号、密码以及其他信息，注意，是任何形式。

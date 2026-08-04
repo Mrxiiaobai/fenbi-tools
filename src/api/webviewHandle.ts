@@ -8,6 +8,7 @@ import {
   SELECTENUM,
 } from "../shared/category";
 import {
+  CategoryNode,
   ErrorKeypointTreeResponse,
   ErrorQuestionIdsResponse,
   ErrorPracticePagination,
@@ -134,6 +135,9 @@ interface UpdateSettingsPostData {
   backgroundColor?: string;
   needLineThrough?: boolean;
   fontSize?: number;
+  correctColor?: string;
+  wrongColor?: string;
+  buttonBorderColor?: string;
   canvasBrushColor?: string;
   canvasBrushWidth?: number;
 }
@@ -146,8 +150,22 @@ interface SydwmsInterviewPostData {
 
 type QuestionLoadMode = "normal" | "quick" | "smart";
 
+let missingCookieMessageShown = false;
+
 const getErrorMessage = (error: unknown) => {
   return error instanceof Error ? error.message : String(error);
+};
+
+const hasFenbiCookie = () => {
+  const cookie = vscode.workspace
+    .getConfiguration("fenbiTools")
+    .get<string>("cookie", "");
+
+  return cookie.trim().length > 0;
+};
+
+const isMissingCookieError = (error: unknown) => {
+  return error instanceof Error && "code" in error && error.code === "MISSING_COOKIE";
 };
 
 const getStaticUrl = (result: ExerciseResult) => {
@@ -603,6 +621,11 @@ export default class WebviewHandle {
   }
 
   private postError(error: unknown) {
+    if (isMissingCookieError(error)) {
+      if (missingCookieMessageShown) return;
+      missingCookieMessageShown = true;
+    }
+
     void vscode.window.showErrorMessage(getErrorMessage(error) || "操作失败");
   }
 
@@ -611,6 +634,14 @@ export default class WebviewHandle {
     count,
     categoryId,
   }: HistoryPostData = {}) {
+    if (!hasFenbiCookie()) {
+      webview.postMessage({
+        command: "history",
+        data: [] as HistoryExercise[],
+      });
+      return;
+    }
+
     const config = getCategoryRouteConfig(category);
     const res = await getHistory({
       category: config.apiCategory,
@@ -626,18 +657,35 @@ export default class WebviewHandle {
 
   async pageInit(postData: PageInitPostData) {
     const category = postData.categoryId || SELECTENUM.XINGCE;
-    const config = getCategoryRouteConfig(category);
-    const cacheResult = await getCache(config.apiCategory);
-    const menu = await getCategories(category);
-    const favoriteQuizLocationName =
-      await this.getFavoriteQuizLocationName(category);
-
     const settingConfig = vscode.workspace.getConfiguration("fenbiTools");
 
     webview.postMessage({
       command: "setting",
       data: settingConfig,
     });
+
+    if (!hasFenbiCookie()) {
+      webview.postMessage({
+        command: "init",
+        data: {
+          categoryId: category,
+          favoriteQuizLocationName: "",
+          menu: [] as CategoryNode[],
+          cacheResult: {},
+        },
+      });
+      webview.postMessage({
+        command: "pageCache",
+        data: {},
+      });
+      return;
+    }
+
+    const config = getCategoryRouteConfig(category);
+    const cacheResult = await getCache(config.apiCategory);
+    const menu = await getCategories(category);
+    const favoriteQuizLocationName =
+      await this.getFavoriteQuizLocationName(category);
 
     webview.postMessage({
       command: "init",
@@ -656,6 +704,8 @@ export default class WebviewHandle {
   }
 
   async changeCategory(postData: ChangeCategoryPostData) {
+    if (!hasFenbiCookie()) return;
+
     const category = postData.categoryId || SELECTENUM.XINGCE;
     const config = getCategoryRouteConfig(category);
     await courseSetChange({ category: config.courseSetPrefix });
@@ -1097,6 +1147,9 @@ export default class WebviewHandle {
       ["backgroundColor", params.backgroundColor],
       ["needLineThrough", params.needLineThrough],
       ["fontSize", params.fontSize],
+      ["correctColor", params.correctColor],
+      ["wrongColor", params.wrongColor],
+      ["buttonBorderColor", params.buttonBorderColor],
       ["canvasBrushColor", params.canvasBrushColor],
       ["canvasBrushWidth", params.canvasBrushWidth],
     ];
@@ -1108,6 +1161,8 @@ export default class WebviewHandle {
           return config.update(key, value, vscode.ConfigurationTarget.Global);
         }),
     );
+
+    if (hasFenbiCookie()) missingCookieMessageShown = false;
 
     webview.postMessage({
       command: "setting",

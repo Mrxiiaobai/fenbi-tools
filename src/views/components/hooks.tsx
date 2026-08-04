@@ -12,6 +12,9 @@ const defaultSetting: TSetting = {
   categoryId: "xingce",
   needLineThrough: false,
   fontSize: 12,
+  correctColor: "#30c9a1",
+  wrongColor: "#ff4d4f",
+  buttonBorderColor: "#ffffff",
 };
 
 // Context
@@ -50,6 +53,24 @@ export const SettingProvider: React.FC<{ children: React.ReactNode }> = ({
         document.documentElement.style.setProperty(
           "--primary-fontSize",
           `${nextSetting.fontSize || 12}px`,
+        );
+        document.documentElement.style.setProperty(
+          "--answer-correct-color",
+          nextSetting.correctColor || "#30c9a1",
+        );
+        document.documentElement.style.setProperty(
+          "--answer-wrong-color",
+          nextSetting.wrongColor || "#ff4d4f",
+        );
+        const borderColor =
+          nextSetting.buttonBorderColor || nextSetting.cardBorderColor || "#ffffff";
+        document.documentElement.style.setProperty(
+          "--button-border-color",
+          borderColor,
+        );
+        document.documentElement.style.setProperty(
+          "--card-border-color",
+          borderColor,
         );
 
         return nextSetting;
