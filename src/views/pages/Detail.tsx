@@ -176,11 +176,11 @@ export const Detail = () => {
   };
 
   const questions = groupByMaterialIndexesTo2DArray(
-    questionData?.questions || []
+    questionData?.questions || [],
   );
 
   const solutions = groupByMaterialIndexesTo2DArray(
-    solutionData?.solutions || []
+    solutionData?.solutions || [],
   );
 
   const onJump = () => {

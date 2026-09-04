@@ -14,7 +14,12 @@ interface TShenlunItemProps {
 
 const { TextArea } = Input;
 export const ShenlunItem = (props: TShenlunItemProps) => {
-  const { data = [], materials = [], onChange, index } = props;
+  const {
+    data = [],
+    materials = [],
+    onChange,
+    index,
+  } = props;
 
   return (
     <div>

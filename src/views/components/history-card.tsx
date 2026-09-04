@@ -50,7 +50,7 @@ export const HistoryCard = (props: {
         <div>
           <p>{_data?.sheet?.name}</p>
           {/* <p>{_data?.sheet?.type == 1 ? "试卷" : "练习"}</p> */}
-          <p>创建时间：{formatDate(_data?.createTime)}</p>
+          <p>创建时间：{formatDate(_data?.createdTime ?? _data?.createTime)}</p>
           <Button
             type="primary"
             style={{ borderColor: "var(--button-border-color)" }}

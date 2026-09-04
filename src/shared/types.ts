@@ -304,6 +304,7 @@ export interface HistoryExercise {
   key?: string;
   status?: number;
   createTime?: number | string;
+  createdTime?: number | string;
   questionCount?: number;
   correctCount?: number;
   sheet?: {

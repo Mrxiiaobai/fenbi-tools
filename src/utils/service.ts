@@ -135,6 +135,11 @@ type QuestionApiResponse = Omit<QuestionPayload, "materials"> & {
   materials?: MaterialData[];
 };
 
+type SolutionQuestionApiResponse = SolutionPayload & {
+  card?: QuestionCard;
+  materials?: MaterialData[];
+};
+
 export const getQuestion = async (
   category: string,
   url: string,
@@ -250,8 +255,11 @@ export const getSolution = async (category = "xingce", combineKey: string) => {
 
 export const getSolutionQuestion = async (url: string, category = "xingce") => {
   const _url = `${url}&routecs=${category}&type=1&kav=121&av=121&hav=121&app=web`;
-  const res = await ajax<SolutionPayload>("GET", _url);
-  return res;
+  const res = await ajax<SolutionQuestionApiResponse>("GET", _url);
+  return {
+    ...res,
+    materials: buildMaterialsForQuestions(res.card, res.materials || []),
+  };
 };
 
 export const getCache = async (catrgory: string = "xingce") => {

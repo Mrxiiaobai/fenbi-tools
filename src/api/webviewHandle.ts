@@ -165,7 +165,9 @@ const hasFenbiCookie = () => {
 };
 
 const isMissingCookieError = (error: unknown) => {
-  return error instanceof Error && "code" in error && error.code === "MISSING_COOKIE";
+  return (
+    error instanceof Error && "code" in error && error.code === "MISSING_COOKIE"
+  );
 };
 
 const getStaticUrl = (result: ExerciseResult) => {
@@ -980,6 +982,10 @@ export default class WebviewHandle {
     }
 
     const questionResult = await getQuestion(category, staticUrl);
+    console.log(
+      "🚀 ~ WebviewHandle ~ loadQuestion ~ questionResult:",
+      questionResult,
+    );
     void getCurrent().catch(() => undefined);
 
     attachUserAnswers(

@@ -104,7 +104,7 @@ export const Answer = () => {
   };
 
   const solutions = groupByMaterialIndexesTo2DArray(
-    solutionData?.solutions || []
+    solutionData?.solutions || [],
   );
 
   const onJump = () => {
@@ -118,6 +118,7 @@ export const Answer = () => {
   };
 
   const list = solutions;
+  const materials = solutionData?.materials || questionData?.materials || [];
 
   useVscodeMessage((message) => {
     setLoading(false);
@@ -170,7 +171,7 @@ export const Answer = () => {
                     onChange={onShenlunChange}
                     data={item}
                     index={index}
-                    materials={questionData?.materials || []}
+                    materials={materials}
                   />
                 );
               }
@@ -180,7 +181,7 @@ export const Answer = () => {
                   onChange={noopQuestionChange}
                   data={item}
                   index={index}
-                  materials={questionData?.materials || []}
+                  materials={materials}
                 />
               );
             })}

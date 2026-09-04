@@ -1,5 +1,9 @@
 import { MaterialData, QuestionCard } from "./types";
 
+const getQuestionCardNodes = (card: QuestionCard | undefined) => {
+  return (card?.children || []).flatMap((chapter) => chapter.children || []);
+};
+
 export const buildMaterialsForQuestions = (
   cards: QuestionCard | undefined,
   materials: MaterialData[] = [],
@@ -10,7 +14,7 @@ export const buildMaterialsForQuestions = (
 
   const usedMaterialKeys = new Set<string | number>();
   const materialsForRender: Array<MaterialData | null> = [];
-  const questions = cards?.children?.[0]?.children || [];
+  const questions = getQuestionCardNodes(cards);
 
   questions.forEach((question, index) => {
     const keys = question.materialKeys;

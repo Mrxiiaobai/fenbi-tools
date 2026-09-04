@@ -65,10 +65,6 @@ export const QuestionItem = (props: TQuestionItemProps) => {
         const questionTypeText = isMultiple ? "多选题" : "单选题";
         const userChoice = ele?.userAnswer?.choice;
         const correctChoice = ele?.correctAnswer?.choice;
-        const hasUserChoice =
-          userChoice !== undefined &&
-          userChoice !== null &&
-          String(userChoice).trim() !== "";
         const userChoiceLabel = getChoiceLabel(userChoice, isMultiple);
         const correctChoiceLabel = getChoiceLabel(correctChoice, isMultiple);
         const isCorrect = userChoice === correctChoice;
