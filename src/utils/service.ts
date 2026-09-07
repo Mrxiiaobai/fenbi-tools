@@ -29,8 +29,7 @@ import {
 import ajax from "./request";
 
 const WEB_API_QUERY = "app=web&kav=100&av=121&hav=100&version=3.0.0.0";
-const CURRENT_WEB_API_QUERY =
-  "app=web&kav=125&av=127&hav=125&version=3.0.0.0";
+const CURRENT_WEB_API_QUERY = "app=web&kav=125&av=127&hav=125&version=3.0.0.0";
 const SYDWMS_API_QUERY = "kav=100&av=100&hav=100&app=web";
 
 export const getExercisesId = async (
@@ -164,8 +163,7 @@ export const getCategories = async (category: string) => {
       "https://tiku.fenbi.com/api/zhyynl/etRuleQuestion/categories?app=web&kav=100&av=121&hav=100&version=3.0.0.0";
   }
   if (isInterviewCategory(category)) {
-    url =
-      `https://tiku.fenbi.com/api/${category}/categories?&filter=giant&app=web&kav=125&av=127&hav=125&version=3.0.0.0`;
+    url = `https://tiku.fenbi.com/api/${category}/categories?&filter=giant&app=web&kav=125&av=127&hav=125&version=3.0.0.0`;
   }
   const res = await ajax<CategoryNode[]>("GET", url);
   return res;
@@ -199,6 +197,16 @@ export const getErrorSolutions = async (
   const ids = questionIds.join(",");
   const url = `https://tiku.fenbi.com/api/${category}/universal/auth/solutions?type=1&questionIds=${ids}&${CURRENT_WEB_API_QUERY}`;
   const res = await ajax<ErrorSolutionsResponse>("GET", url);
+  return res;
+};
+
+export const removeErrorQuestion = async (
+  category: string = SELECTENUM.XINGCE,
+  questionId: number | string,
+) => {
+  const url = `https://tiku.fenbi.com/api/${category}/errors/${questionId}?${CURRENT_WEB_API_QUERY}`;
+  const res = await ajax("DELETE", url);
+  console.log("removeErrorQuestion res:", res);
   return res;
 };
 
@@ -316,11 +324,7 @@ export const incr = async (
 
 export const submit = async (category = "xingce", combineKey: string) => {
   const url = `https://tiku.fenbi.com/combine/exercise/submit?key=${combineKey}&routecs=${category}&kav=121&av=121&hav=121&app=web`;
-  const res = await ajax<ExerciseResult>(
-    "POST",
-    url,
-    {},
-  );
+  const res = await ajax<ExerciseResult>("POST", url, {});
   return res;
 };
 

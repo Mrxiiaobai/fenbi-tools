@@ -205,6 +205,26 @@ export const ErrorsDetail = () => {
         return item.userAnswer?.choice === item.correctAnswer?.choice;
       }).length;
 
+      const correctQuestionIds = solutionsWithUserAnswers
+        .filter((item) => {
+          return (
+            item.userAnswer?.choice &&
+            item.userAnswer.choice === item.correctAnswer?.choice
+          );
+        })
+        .map((item) => getQuestionKey(item))
+        .filter(Boolean);
+
+      if (correctQuestionIds.length) {
+        vscode.postMessage({
+          command: "removeErrorQuestions",
+          postData: {
+            category,
+            questionIds: correctQuestionIds,
+          },
+        });
+      }
+
       setViewMode("solution");
       setSolutionData({
         ...data,

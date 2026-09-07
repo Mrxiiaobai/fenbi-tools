@@ -56,6 +56,7 @@ import {
   getSydwmsSolutions,
   getUserTemplateInfo,
   incr,
+  removeErrorQuestion,
   studyTime,
   submit,
   updateUserTemplateInfo,
@@ -89,6 +90,11 @@ interface ErrorPracticePostData {
   page?: number;
   limit?: number;
   total?: number;
+}
+
+interface ErrorRemovePostData {
+  category?: string;
+  questionIds?: Array<number | string>;
 }
 
 interface QuestionPostData {
@@ -571,6 +577,11 @@ export default class WebviewHandle {
           (postData || {}) as ErrorPracticePostData,
         );
         return;
+      case "removeErrorQuestions":
+        await this.removeErrorQuestions(
+          (postData || {}) as ErrorRemovePostData,
+        );
+        return;
       case "getQuestion":
         await this.getQuestion((postData || {}) as QuestionPostData);
         return;
@@ -823,6 +834,23 @@ export default class WebviewHandle {
         errorPagination: pagination,
       } as SolutionPayload,
     });
+  }
+
+  async removeErrorQuestions(params: ErrorRemovePostData) {
+    const category = params.category || SELECTENUM.XINGCE;
+    const questionIds = dedupeIds(params.questionIds || []);
+    if (!questionIds.length) return;
+
+    await Promise.all(
+      questionIds.map((id) => {
+        return removeErrorQuestion(category, id).catch((error) => {
+          console.error("[FenbiTools:Errors] remove error question failed", {
+            questionId: id,
+            error: error instanceof Error ? error.message : String(error),
+          });
+        });
+      }),
+    );
   }
 
   async getFavoriteQuizLocationName(category?: string) {
