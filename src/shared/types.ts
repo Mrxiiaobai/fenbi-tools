@@ -108,6 +108,7 @@ export interface QuestionItem {
   materialIndexes?: number[] | null;
   materialKeys?: Array<string | number>;
   userAnswer?: FenbiAnswer;
+  materialContent?: string | null;
 }
 
 export interface SolutionItem extends QuestionItem {

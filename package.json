@@ -3,7 +3,7 @@
   "displayName": "Fenbi Tools",
   "description": "粉笔考公&摸鱼学习、考公必备，支持自定义数量、刷题历史、申论等功能",
   "icon": "resources/dark/fish.png",
-  "version": "1.0.37",
+  "version": "1.1.0",
   "license": "ISC",
   "engines": {
     "vscode": "^1.96.0"
@@ -52,12 +52,25 @@
           "light": "resources/light/refresh.svg",
           "dark": "resources/dark/refresh.svg"
         }
+      },
+      {
+        "command": "openFenbiWebview.toggleDisguise",
+        "title": "智能伪装",
+        "icon": {
+          "light": "resources/light/disguise.svg",
+          "dark": "resources/dark/disguise.svg"
+        }
       }
     ],
     "menus": {
       "view/title": [
         {
           "command": "openFenbiWebview.refreshEntry",
+          "group": "navigation",
+          "when": "view == openFenbiWebview"
+        },
+        {
+          "command": "openFenbiWebview.toggleDisguise",
           "group": "navigation",
           "when": "view == openFenbiWebview"
         }

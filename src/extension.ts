@@ -13,6 +13,12 @@ export function activate(context: vscode.ExtensionContext) {
         data: config,
       });
     }),
+    vscode.commands.registerCommand("openFenbiWebview.toggleDisguise", () => {
+      webview.postMessage({
+        command: "showDisguise",
+        data: null,
+      });
+    }),
     vscode.window.registerWebviewViewProvider("openFenbiWebview", provider, {
       webviewOptions: {
         retainContextWhenHidden: true,

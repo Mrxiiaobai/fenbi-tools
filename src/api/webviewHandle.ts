@@ -790,6 +790,20 @@ export default class WebviewHandle {
       }, []),
       questionIds,
     );
+    const rawMaterials = extractErrorMaterials(payloads);
+    const seenMaterialContents = new Set<string>();
+    const solutionsWithMaterialContent = solutions.map((sol) => {
+      const materialIdx = sol.materialIndexes?.[0];
+      const material =
+        typeof materialIdx === "number" ? rawMaterials[materialIdx] : null;
+      const content = material?.content;
+      if (!content) return { ...sol, materialContent: null };
+      if (seenMaterialContents.has(content)) {
+        return { ...sol, materialContent: null };
+      }
+      seenMaterialContents.add(content);
+      return { ...sol, materialContent: content };
+    });
 
     return {
       pagination: {
@@ -800,8 +814,8 @@ export default class WebviewHandle {
         questionIds,
       } as ErrorPracticePagination,
       questionIds,
-      solutions,
-      materials: extractErrorMaterials(payloads),
+      solutions: solutionsWithMaterialContent,
+      materials: rawMaterials,
     };
   }
 

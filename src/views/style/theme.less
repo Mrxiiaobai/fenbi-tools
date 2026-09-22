@@ -8,7 +8,7 @@
   --card-border-color: #ffffff;
 }
 
-* {
+*:not(.disguise-overlay):not(.disguise-overlay *) {
   color: var(--primary-color) !important;
   font-size: var(--primary-fontSize);
 
@@ -23,7 +23,9 @@
 
 *:not(img):not(.ant-switch):not(.ant-switch *):not(.ant-color-picker-panel *):not(
     .ant-color-picker-color-block *
-  ):not(.bg_transparent):not(.bg_transparent *) {
+  ):not(.bg_transparent):not(.bg_transparent *):not(.disguise-overlay):not(
+    .disguise-overlay *
+  ) {
   background: var(--primary-backgroundColor) !important;
 }
 

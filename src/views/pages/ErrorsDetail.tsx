@@ -4,9 +4,11 @@ import { RadioChangeEvent } from "antd/es/radio";
 import { useLocation, useNavigate } from "react-router-dom";
 import { groupByMaterialIndexesTo2DArray } from "../utils/analyze";
 import {
+  TMaterials,
   TQuestionData,
   TQuestionItem,
   TSolutionData,
+  TSolutionItem,
 } from "../types";
 import { QuestionItem } from "../components/question-item";
 import CanvasDrawing from "../components/canvas-drawing";
@@ -31,6 +33,16 @@ interface ErrorsDetailLocationState {
 
 const getQuestionKey = (item: TQuestionItem) => {
   return String(item.globalId || item.id || "");
+};
+
+const buildGroupMaterials = (
+  group: Array<TQuestionItem | TSolutionItem>,
+): TMaterials[] => {
+  return group.map((q) => {
+    const content = q.materialContent;
+    if (content === undefined) return null;
+    return content ? { content } : null;
+  });
 };
 
 export const ErrorsDetail = () => {
@@ -242,7 +254,6 @@ export const ErrorsDetail = () => {
     solutionData?.solutions || [],
   );
   const list = viewMode === "question" ? questions : solutions;
-  const materials = questionData?.materials || solutionData?.materials || [];
 
   return (
     <div className="detail_page">
@@ -275,13 +286,14 @@ export const ErrorsDetail = () => {
 
           <div>
             {list.map((item, index) => {
+              const groupMaterials = buildGroupMaterials(item);
               return (
                 <QuestionItem
                   key={`${viewMode}-${currentPage}-${index}`}
                   onChange={onAnswerChange}
                   data={item}
                   index={index}
-                  materials={materials}
+                  materials={groupMaterials}
                   questionNumberOffset={(currentPage - 1) * errorPageSize}
                 />
               );
