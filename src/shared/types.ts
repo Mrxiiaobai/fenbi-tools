@@ -111,8 +111,14 @@ export interface QuestionItem {
   materialContent?: string | null;
 }
 
+export interface SolutionKeypoint {
+  id: number;
+  name: string;
+}
+
 export interface SolutionItem extends QuestionItem {
   solution?: string;
+  keypoints?: SolutionKeypoint[];
 }
 
 export interface CacheData {

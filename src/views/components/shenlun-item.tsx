@@ -1,6 +1,6 @@
 import * as React from "react";
+import { Button, Input } from "antd";
 import { TMaterials, TQuestionItem, TSolutionItem } from "../types";
-import { Input } from "antd";
 import { radioMap } from "../utils/constant";
 
 type ShenlunRenderItem = TQuestionItem | TSolutionItem;
@@ -85,6 +85,21 @@ export const ShenlunItem = (props: TShenlunItemProps) => {
                     __html: ele.solution,
                   }}
                 ></div>
+                {ele.keypoints && ele.keypoints.length > 0 && (
+                  <div className="keypoints">
+                    <span className="keypoints-label">考点：</span>
+                    {ele.keypoints.map((kp) => (
+                      <Button
+                        key={kp.id}
+                        size="small"
+                        type="dashed"
+                        style={{ margin: "4px 4px 0 0" }}
+                      >
+                        {kp.name}
+                      </Button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </div>

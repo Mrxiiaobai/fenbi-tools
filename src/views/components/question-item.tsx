@@ -227,6 +227,21 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                       __html: setImg(ele.solution),
                     }}
                   ></div>
+                  {ele.keypoints && ele.keypoints.length > 0 && (
+                    <div className="keypoints">
+                      <span className="keypoints-label">考点：</span>
+                      {ele.keypoints.map((kp) => (
+                        <Button
+                          key={kp.id}
+                          size="small"
+                          type="dashed"
+                          style={{ margin: "4px 4px 0 0" }}
+                        >
+                          {kp.name}
+                        </Button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
