@@ -270,7 +270,10 @@ export interface SydwmsEpisodeItem {
 }
 
 export interface SydwmsEpisodePayload {
-  data?: Record<string, Record<string, SydwmsEpisodeItem> | SydwmsEpisodeItem[]>;
+  data?: Record<
+    string,
+    Record<string, SydwmsEpisodeItem> | SydwmsEpisodeItem[]
+  >;
   [key: string]: unknown;
 }
 
@@ -310,8 +313,8 @@ export interface HistoryExercise {
   id?: number;
   key?: string;
   status?: number;
-  createTime?: number | string;
   createdTime?: number | string;
+  updatedTime?: number | string;
   questionCount?: number;
   correctCount?: number;
   sheet?: {
@@ -322,6 +325,37 @@ export interface HistoryExercise {
 
 export interface HistoryResponse {
   datas?: HistoryExercise[];
+}
+
+export interface PaperLabel {
+  id: number | string;
+  name?: string;
+  parentId?: number | string;
+  count?: number;
+  [key: string]: unknown;
+}
+
+export interface PastPaper {
+  id?: number | string;
+  paperId?: number | string;
+  name?: string;
+  title?: string;
+  year?: number | string;
+  province?: string;
+  area?: string;
+  questionCount?: number;
+  count?: number;
+  labelId?: number | string;
+  [key: string]: unknown;
+}
+
+export interface PaperCatalogPayload {
+  labels: PaperLabel[];
+  papers: PastPaper[];
+  page: number;
+  pageSize: number;
+  total?: number;
+  hasMore?: boolean;
 }
 
 export interface FavoriteQuizResponseData {

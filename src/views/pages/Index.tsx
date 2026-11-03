@@ -148,7 +148,9 @@ const SettingsPanel = ({
         <Switch
           size="small"
           checked={Boolean(settingsDraft.needLineThrough)}
-          onChange={(checked) => updateSettingsDraft("needLineThrough", checked)}
+          onChange={(checked) =>
+            updateSettingsDraft("needLineThrough", checked)
+          }
         />
       </div>
 
@@ -161,7 +163,9 @@ const SettingsPanel = ({
           addonAfter="px"
           value={Number(settingsDraft.fontSize) || 12}
           style={settingControlStyle}
-          onChange={(value) => updateSettingsDraft("fontSize", Number(value) || 12)}
+          onChange={(value) =>
+            updateSettingsDraft("fontSize", Number(value) || 12)
+          }
         />
       </div>
 
@@ -245,6 +249,10 @@ const canShowErrors = (category?: string) => {
   );
 };
 
+const canShowPastPapers = (category?: string) => {
+  return Boolean(category) && !isInterviewCategory(category);
+};
+
 export const Home = () => {
   const [messageApi, messageHolder] = message.useMessage();
   const [historyList, setHistoryList] = React.useState<HistoryExercise[]>([]);
@@ -281,7 +289,10 @@ export const Home = () => {
     });
   };
 
-  const treeClick = (e: { id: number | string; name?: string }, cacheResult: { keypointIds?: Array<number | string>; combineKey?: string }) => {
+  const treeClick = (
+    e: { id: number | string; name?: string },
+    cacheResult: { keypointIds?: Array<number | string>; combineKey?: string },
+  ) => {
     const key = e.id;
 
     setLoading(true);
@@ -336,6 +347,14 @@ export const Home = () => {
     });
   };
 
+  const goPastPapers = () => {
+    navigate("/papers", {
+      state: {
+        category: setting.categoryId || SELECTENUM.XINGCE,
+      },
+    });
+  };
+
   const goDetail = ({
     id,
     combineKey,
@@ -375,7 +394,8 @@ export const Home = () => {
       fontSize: Number(setting.fontSize) || 12,
       correctColor: setting.correctColor || "#30c9a1",
       wrongColor: setting.wrongColor || "#ff4d4f",
-      buttonBorderColor: setting.buttonBorderColor || setting.cardBorderColor || "#ffffff",
+      buttonBorderColor:
+        setting.buttonBorderColor || setting.cardBorderColor || "#ffffff",
       canvasBrushColor: setting.canvasBrushColor || "red",
       canvasBrushWidth: Number(setting.canvasBrushWidth) || 3,
     });
@@ -468,8 +488,7 @@ export const Home = () => {
   };
 
   const onChangeCategory = (e: string) => {
-    const nextCategory =
-      e === SELECTENUM.SYZC ? SELECTENUM.SYZC : e;
+    const nextCategory = e === SELECTENUM.SYZC ? SELECTENUM.SYZC : e;
     applyCategoryChange(nextCategory);
   };
 
@@ -487,15 +506,24 @@ export const Home = () => {
           const data = message.data as {
             favoriteQuizLocationName?: string;
             menu?: CategoryNode[];
-            cacheResult?: { keypointIds?: Array<number | string>; combineKey?: string };
+            cacheResult?: {
+              keypointIds?: Array<number | string>;
+              combineKey?: string;
+            };
           };
           setFavoriteQuizLocationName(data.favoriteQuizLocationName || "");
-          const _data = modifyArrayToTree(data.menu || [], data.cacheResult || {}, treeClick);
+          const _data = modifyArrayToTree(
+            data.menu || [],
+            data.cacheResult || {},
+            treeClick,
+          );
           setTreeData(_data);
         }
         if (message.command === "message") {
           pageInit({ categoryId: setting.categoryId });
-          messageApi.info((message.data as { message?: string })?.message || "");
+          messageApi.info(
+            (message.data as { message?: string })?.message || "",
+          );
         }
         if (message.command === "history") {
           setHistoryList((message.data as HistoryExercise[]) || []);
@@ -587,35 +615,54 @@ export const Home = () => {
               />
             </div>
           )}
-          {canShowSmartPaper(currentCategory) && (
-            <Flex justify="flex-start" align="center" gap={8} style={{ margin: "0 10px 10px" }}>
-              {canShowErrors(currentCategory) && (
+          {(canShowSmartPaper(currentCategory) ||
+            canShowPastPapers(currentCategory)) && (
+            <Flex
+              justify="flex-start"
+              align="center"
+              gap={8}
+              style={{ margin: "0 10px 10px" }}
+            >
+              {canShowPastPapers(currentCategory) && (
                 <Button
                   type="link"
                   style={{ borderColor: "var(--button-border-color)" }}
-                  onClick={goErrors}
+                  onClick={goPastPapers}
                 >
-                  我的错题
+                  历年试卷
                 </Button>
               )}
-              <Button
-                type="link"
-                style={{ borderColor: "var(--button-border-color)" }}
-                onClick={() => {
-                  goDetail({
-                    mode: "quick",
-                  });
-                }}
-              >
-                快速练习
-              </Button>
-              <Button
-                type="link"
-                style={{ borderColor: "var(--button-border-color)" }}
-                onClick={openSmartPaperModal}
-              >
-                智能组卷
-              </Button>
+              {canShowSmartPaper(currentCategory) && (
+                <>
+                  {canShowErrors(currentCategory) && (
+                    <Button
+                      type="link"
+                      style={{ borderColor: "var(--button-border-color)" }}
+                      onClick={goErrors}
+                    >
+                      我的错题
+                    </Button>
+                  )}
+                  <Button
+                    type="link"
+                    style={{ borderColor: "var(--button-border-color)" }}
+                    onClick={() => {
+                      goDetail({
+                        mode: "quick",
+                      });
+                    }}
+                  >
+                    快速练习
+                  </Button>
+                  <Button
+                    type="link"
+                    style={{ borderColor: "var(--button-border-color)" }}
+                    onClick={openSmartPaperModal}
+                  >
+                    智能组卷
+                  </Button>
+                </>
+              )}
             </Flex>
           )}
           {(currentCategory === SELECTENUM.SHENLUN ||

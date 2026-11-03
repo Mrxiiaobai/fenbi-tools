@@ -22,10 +22,7 @@ export const HistoryCard = (props: {
 }) => {
   const { onClick, data, goExercise } = props;
 
-  const _data = data.find(
-    (item) => item?.status == 0 && item?.sheet?.type <= 3,
-  );
-  console.log("🚀 ~ HistoryCard ~ _data:", _data);
+  const _data = data.find((item) => item?.status == 0);
 
   return (
     <div
@@ -50,7 +47,7 @@ export const HistoryCard = (props: {
         <div>
           <p>{_data?.sheet?.name}</p>
           {/* <p>{_data?.sheet?.type == 1 ? "试卷" : "练习"}</p> */}
-          <p>创建时间：{formatDate(_data?.createdTime ?? _data?.createTime)}</p>
+          <p>创建时间：{formatDate(_data?.createdTime)}</p>
           <Button
             type="primary"
             style={{ borderColor: "var(--button-border-color)" }}

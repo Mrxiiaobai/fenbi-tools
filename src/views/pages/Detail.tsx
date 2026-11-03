@@ -25,9 +25,11 @@ let modalIs = false;
 
 interface DetailLocationState {
   id?: number;
+  paperId?: number | string;
+  paperTitle?: string;
   type?: number;
   combineKey?: string;
-  mode?: "quick" | "smart";
+  mode?: "quick" | "smart" | "real";
   smartYearScope?: number;
 }
 
@@ -47,6 +49,8 @@ export const Detail = () => {
   const location = useLocation();
   const {
     id,
+    paperId,
+    paperTitle,
     type = 1,
     combineKey: defaultCombineKey = "",
     mode,
@@ -59,6 +63,7 @@ export const Detail = () => {
     getQuestion({
       category: setting.categoryId,
       id,
+      paperId,
       combineKey,
       type,
       mode,
@@ -89,6 +94,7 @@ export const Detail = () => {
   const getQuestion = ({
     category,
     id,
+    paperId,
     combineKey,
     type = 1,
     mode,
@@ -96,12 +102,20 @@ export const Detail = () => {
   }: {
     category?: string;
     id?: number;
+    paperId?: number | string;
     combineKey?: string | null;
     type?: number;
-    mode?: "quick" | "smart";
+    mode?: "quick" | "smart" | "real";
     smartYearScope?: number;
   }) => {
     setLoading(true);
+    if (mode === "real") {
+      vscode.postMessage({
+        command: "getRealQuestion",
+        postData: { category, paperId },
+      });
+      return;
+    }
     if (mode === "smart") {
       vscode.postMessage({
         command: "getSmartQuestion",
@@ -243,6 +257,9 @@ export const Detail = () => {
 
             {page == 2 && <Button onClick={onJump}>跳转粉笔网址</Button>}
           </div>
+          {mode === "real" && paperTitle && (
+            <div className="paper-answer-title">{paperTitle}</div>
+          )}
           {page == 2 && (
             <div>
               答对题目数：{solutionData?.correctCount} /{" "}

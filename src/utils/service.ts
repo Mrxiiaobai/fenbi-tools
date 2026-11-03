@@ -15,6 +15,8 @@ import {
   FavoriteQuizResponse,
   HistoryResponse,
   MaterialData,
+  PaperCatalogPayload,
+  PaperLabel,
   QuestionCard,
   QuestionPayload,
   SolutionPayload,
@@ -115,6 +117,74 @@ export const getSmartExercisesId = async (
   );
 
   return res;
+};
+
+export const getRealExercisesId = async (
+  category: string = "xingce",
+  paperId: number | string,
+) => {
+  const url = `https://tiku.fenbi.com/api/${
+    category || "xingce"
+  }/exercises?${WEB_API_QUERY}`;
+
+  return ajax<ExerciseKeyResponse>(
+    "FORM",
+    url,
+    {
+      type: 1,
+      paperId,
+      exerciseTimeMode: 2,
+    },
+    {
+      "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+    },
+  );
+};
+
+export const getPaperLabels = async (category: string = "xingce") => {
+  const baseUrl = `https://tiku.fenbi.com/api/${category || "xingce"}`;
+  try {
+    return await ajax<PaperLabel[]>(
+      "GET",
+      `${baseUrl}/subLabels?${CURRENT_WEB_API_QUERY}`,
+    );
+  } catch (_error) {
+    return ajax<PaperLabel[]>(
+      "GET",
+      `${baseUrl}/subLabels/v2?${CURRENT_WEB_API_QUERY}`,
+    );
+  }
+};
+
+export const getPastPapers = async (
+  category: string = "xingce",
+  params: { page?: number; pageSize?: number; labelId?: number | string } = {},
+) => {
+  const page = Math.max(0, Math.floor(Number(params.page) || 0));
+  const pageSize = Math.max(
+    1,
+    Math.min(50, Math.floor(Number(params.pageSize) || 12)),
+  );
+  const query = new URLSearchParams({
+    toPage: String(page),
+    pageSize: String(pageSize),
+  });
+  if (params.labelId !== undefined && params.labelId !== "") {
+    query.set("labelId", String(params.labelId));
+  }
+
+  const baseUrl = `https://tiku.fenbi.com/api/${category || "xingce"}`;
+  try {
+    return await ajax<PaperCatalogPayload>(
+      "GET",
+      `${baseUrl}/papers/?${query.toString()}`,
+    );
+  } catch (_error) {
+    return ajax<PaperCatalogPayload>(
+      "GET",
+      `${baseUrl}/papers/v2?${query.toString()}`,
+    );
+  }
 };
 
 export const getExercisesUrl = async ({

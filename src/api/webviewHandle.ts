@@ -18,6 +18,9 @@ import {
   FavoriteQuizResponseData,
   HistoryExercise,
   MaterialData,
+  PaperCatalogPayload,
+  PaperLabel,
+  PastPaper,
   QuestionItem,
   QuestionPayload,
   SolutionItem,
@@ -45,7 +48,10 @@ import {
   getExercisesUrl,
   getHistory,
   getQuestion,
+  getPaperLabels,
+  getPastPapers,
   getQuickExercisesId,
+  getRealExercisesId,
   getSmartExercisesId,
   getSolution,
   getSolutionQuestion,
@@ -101,6 +107,7 @@ interface QuestionPostData {
   category?: string;
   combineKey?: string;
   id?: number;
+  paperId?: number | string;
 }
 
 interface SmartQuestionPostData extends QuestionPostData {
@@ -154,7 +161,14 @@ interface SydwmsInterviewPostData {
   questionIndex?: number;
 }
 
-type QuestionLoadMode = "normal" | "quick" | "smart";
+type QuestionLoadMode = "normal" | "quick" | "smart" | "real";
+
+interface PaperCatalogPostData {
+  category?: string;
+  page?: number;
+  pageSize?: number;
+  labelId?: number | string;
+}
 
 let missingCookieMessageShown = false;
 
@@ -400,6 +414,43 @@ const flattenResponseItems = <TItem>(value: unknown): TItem[] => {
   }, []);
 };
 
+const normalizeCatalogItems = <TItem>(
+  value: unknown,
+  identityKeys: string[],
+): TItem[] => {
+  if (!value) return [];
+  if (Array.isArray(value)) {
+    return value.reduce<TItem[]>((items, item) => {
+      return items.concat(normalizeCatalogItems<TItem>(item, identityKeys));
+    }, []);
+  }
+  if (typeof value !== "object") return [];
+
+  const record = value as Record<string, unknown>;
+  if (identityKeys.some((key) => key in record)) {
+    return [record as TItem];
+  }
+
+  return Object.keys(record).reduce<TItem[]>((items, key) => {
+    return items.concat(
+      normalizeCatalogItems<TItem>(record[key], identityKeys),
+    );
+  }, []);
+};
+
+const extractCatalogTotal = (value: unknown): number | undefined => {
+  if (!value || typeof value !== "object") return undefined;
+  const record = value as Record<string, unknown>;
+  for (const key of ["total", "totalCount", "count"]) {
+    if (typeof record[key] === "number") return Number(record[key]);
+  }
+  for (const key of ["data", "datas", "result", "pagination", "page"]) {
+    const total = extractCatalogTotal(record[key]);
+    if (total !== undefined) return total;
+  }
+  return undefined;
+};
+
 const getSydwmsEpisodesByQuestionId = (
   payload: unknown,
   questionId: number | string,
@@ -585,6 +636,12 @@ export default class WebviewHandle {
       case "getQuestion":
         await this.getQuestion((postData || {}) as QuestionPostData);
         return;
+      case "getRealQuestion":
+        await this.getRealQuestion((postData || {}) as QuestionPostData);
+        return;
+      case "getPaperCatalog":
+        await this.getPaperCatalog((postData || {}) as PaperCatalogPostData);
+        return;
       case "getSolution":
         await this.getSolutions((postData || {}) as SubmitPostData);
         return;
@@ -639,7 +696,12 @@ export default class WebviewHandle {
       missingCookieMessageShown = true;
     }
 
-    void vscode.window.showErrorMessage(getErrorMessage(error) || "操作失败");
+    const message = getErrorMessage(error) || "操作失败";
+    void vscode.window.showErrorMessage(message);
+    webview.postMessage({
+      command: "message",
+      data: { message },
+    });
   }
 
   async getHistory({
@@ -890,6 +952,13 @@ export default class WebviewHandle {
     await this.loadQuestion(params, "normal");
   }
 
+  async getRealQuestion(params: QuestionPostData) {
+    if (!params.paperId) {
+      throw new Error("缺少试卷 ID，无法开始答题");
+    }
+    await this.loadQuestion(params, "real");
+  }
+
   async getQuickQuestion(params: QuestionPostData) {
     await this.loadQuestion(params, "quick");
   }
@@ -905,6 +974,81 @@ export default class WebviewHandle {
     webview.postMessage({
       command: "templateInfo",
       data: res.data || {},
+    });
+  }
+
+  async getPaperCatalog(params: PaperCatalogPostData = {}) {
+    const category = params.category || SELECTENUM.XINGCE;
+    const page = Math.max(1, Math.floor(Number(params.page) || 1));
+    const pageSize = Math.max(
+      1,
+      Math.min(50, Math.floor(Number(params.pageSize) || 12)),
+    );
+
+    if (!hasFenbiCookie()) {
+      webview.postMessage({
+        command: "paperCatalog",
+        data: {
+          labels: [],
+          papers: [],
+          page,
+          pageSize,
+          total: 0,
+          hasMore: false,
+        } as PaperCatalogPayload,
+      });
+      webview.postMessage({
+        command: "message",
+        data: {
+          message: "请先在 VS Code 设置中配置 fenbiTools.cookie",
+        },
+      });
+      return;
+    }
+
+    const apiCategory = getCategoryRouteConfig(category).apiCategory;
+    const [labelsResult, papersResult] = await Promise.all([
+      getPaperLabels(apiCategory),
+      getPastPapers(apiCategory, {
+        page: page - 1,
+        pageSize,
+        labelId: params.labelId,
+      }),
+    ]);
+
+    const labels = normalizeCatalogItems<PaperLabel>(labelsResult, [
+      "id",
+      "labelId",
+      "name",
+      "title",
+    ]).map((item) => ({
+      ...item,
+      id: item.id ?? item.labelId ?? "",
+      name: item.name || String(item.title || item.labelName || ""),
+    }));
+    const papers = normalizeCatalogItems<PastPaper>(papersResult, [
+      "id",
+      "paperId",
+      "name",
+      "title",
+      "paperName",
+    ]).map((item) => ({
+      ...item,
+      id: item.id ?? item.paperId,
+      name: item.name || String(item.title || item.paperName || ""),
+    }));
+    const total = extractCatalogTotal(papersResult);
+
+    webview.postMessage({
+      command: "paperCatalog",
+      data: {
+        labels,
+        papers,
+        page,
+        pageSize,
+        total,
+        hasMore: total ? page * pageSize < total : papers.length >= pageSize,
+      } as PaperCatalogPayload,
     });
   }
 
@@ -1001,6 +1145,8 @@ export default class WebviewHandle {
           ? await getSmartExercisesId(category, { yearScope: params.yearScope })
           : mode === "quick"
             ? await getQuickExercisesId(category)
+            : mode === "real"
+              ? await getRealExercisesId(category, params.paperId || "")
             : await getExercisesId(category, { keypointId: params.id });
       combineKey = keyResult.key || "";
     }

@@ -1,0 +1,134 @@
+.papers-page {
+  min-height: 100vh;
+  padding: 8px 10px 24px;
+  box-sizing: border-box;
+
+  .papers-header {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+    margin-bottom: 14px;
+
+    .ant-btn {
+      flex: 0 0 auto;
+      margin-top: 2px;
+    }
+
+    h2 {
+      margin: 2px 0 4px;
+      font-size: 18px;
+      line-height: 1.4;
+    }
+
+    p {
+      margin: 0;
+      opacity: 0.72;
+      line-height: 1.6;
+    }
+  }
+
+  .papers-filter {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    margin: 0 0 12px;
+    padding: 10px;
+    border: 1px solid var(--card-border-color);
+    border-radius: 5px;
+
+    .papers-filter-label {
+      font-weight: 600;
+      white-space: nowrap;
+    }
+
+    .ant-radio-group {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .ant-radio-button-wrapper {
+      border-radius: 4px;
+      border-inline-start-width: 1px;
+    }
+  }
+
+  .paper-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+    gap: 10px;
+  }
+
+  .paper-card {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 96px;
+    padding: 12px;
+    border: 1px solid var(--card-border-color);
+    border-radius: 5px;
+    box-sizing: border-box;
+
+    .paper-card-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 42px;
+      flex: 0 0 34px;
+      border: 1px solid var(--button-border-color);
+      border-radius: 4px;
+      font-size: 18px;
+    }
+
+    .paper-card-body {
+      min-width: 0;
+      flex: 1;
+
+      h3 {
+        margin: 0 0 6px;
+        overflow-wrap: anywhere;
+        font-size: 14px;
+        line-height: 1.45;
+      }
+
+      p {
+        margin: 0;
+        opacity: 0.7;
+        line-height: 1.4;
+      }
+    }
+
+    .ant-btn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+  }
+
+  .papers-pagination {
+    display: flex;
+    justify-content: center;
+    margin-top: 18px;
+  }
+}
+
+@media (max-width: 420px) {
+  .papers-page {
+    .paper-grid {
+      grid-template-columns: 1fr;
+    }
+
+    .paper-card {
+      align-items: flex-start;
+      flex-wrap: wrap;
+
+      .paper-card-body {
+        flex-basis: calc(100% - 54px);
+      }
+
+      .ant-btn {
+        width: 100%;
+      }
+    }
+  }
+}

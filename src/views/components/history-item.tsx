@@ -18,7 +18,7 @@ export const HistoryItem = (props: {
         <div>
           <p>{data?.sheet?.name}</p>
           <p>{data?.sheet?.type == 1 ? "试卷" : "练习"}</p>
-          <p>创建时间：{dayjs(data?.createTime).format("YYYY-MM-DD")}</p>
+          <p>创建时间：{dayjs(data?.createdTime).format("YYYY-MM-DD")}</p>
           <p>
             共{data?.questionCount}题,答对：{data?.correctCount}题
           </p>
