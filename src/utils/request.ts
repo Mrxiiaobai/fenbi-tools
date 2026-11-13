@@ -58,6 +58,11 @@ const ajax = <TResponse = unknown>(
   return new Promise<TResponse>((resolve, reject) => {
     const req = https.request(options, (res) => {
       let data = "";
+      // Decode the response through Node's streaming UTF-8 decoder. Without
+      // setEncoding(), each Buffer chunk is converted to a string separately;
+      // a UTF-8 character split across two chunks then becomes replacement
+      // characters ("�").
+      res.setEncoding("utf8");
       res.on("data", (chunk: string) => {
         data += chunk;
       });
