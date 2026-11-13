@@ -1,4 +1,5 @@
 import * as React from "react";
+import { TrophyOutlined } from "@ant-design/icons";
 import {
   Button,
   ColorPicker,
@@ -596,7 +597,10 @@ export const Home = () => {
               入群交流
             </Button>
           </Flex>
-          <Flex align="center">
+          <Flex align="center" wrap="wrap">
+            <Button type="link" icon={<TrophyOutlined />} onClick={() => navigate("/leaderboard")}>
+              排行榜
+            </Button>
             <Select
               options={getCategoryOptions(favoriteQuizCoursePrefixes)}
               value={mainCategoryValue}

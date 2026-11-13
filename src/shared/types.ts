@@ -136,11 +136,60 @@ export interface QuestionPayload {
   materials?: Array<MaterialData | null>;
   questionCount?: number;
   errorPagination?: ErrorPracticePagination;
+  leaderboardSubmissionId?: string;
 }
 
 export interface SolutionPayload extends QuestionPayload {
   solutions?: SolutionItem[];
   correctCount?: number;
+  leaderboardCompletedAt?: string;
+}
+
+export type LeaderboardSort = "quantity" | "winRate";
+
+export interface LeaderboardEntry {
+  userId: string;
+  nickname: string;
+  questionCount: number;
+  correctCount: number;
+  winRate: number;
+  rank: number | null;
+}
+
+export interface LeaderboardPayload {
+  date: string;
+  timezone: string;
+  sort: LeaderboardSort;
+  minQuestionCount: number;
+  page: number;
+  pageSize: number;
+  total: number;
+  updatedAt: string;
+  me: LeaderboardEntry | null;
+  entries: LeaderboardEntry[];
+}
+
+export interface LeaderboardResult {
+  submissionId: string;
+  questionCount: number;
+  correctCount: number;
+  completedAt: string;
+}
+
+export interface LeaderboardReportStatus {
+  submissionId: string;
+  status: "uploading" | "success" | "error";
+  message?: string;
+}
+
+export interface FenbiUserInfo {
+  id?: number | string;
+  userId?: number | string;
+  nickname?: string;
+}
+
+export interface FenbiUserInfoResponse extends FenbiUserInfo {
+  data?: FenbiUserInfo;
 }
 
 export interface ErrorKeypointNode extends CategoryNode {

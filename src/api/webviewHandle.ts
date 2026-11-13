@@ -1,5 +1,8 @@
 /* eslint-disable no-console */
 import * as vscode from "vscode";
+import { randomUUID } from "crypto";
+import { getObjectiveResultStats } from "../shared/resultStats";
+import { fetchLeaderboard, hashLeaderboardId, uploadLeaderboardResult } from "../utils/leaderboard";
 import {
   getCategoryRouteConfig,
   getFavoriteQuizCourseSetPrefix,
@@ -17,6 +20,8 @@ import {
   FenbiAnswer,
   FavoriteQuizResponseData,
   HistoryExercise,
+  LeaderboardResult,
+  LeaderboardSort,
   MaterialData,
   PaperCatalogPayload,
   PaperLabel,
@@ -98,6 +103,8 @@ interface ErrorPracticePostData {
   page?: number;
   limit?: number;
   total?: number;
+  leaderboardSubmissionId?: string;
+  completedAt?: string;
 }
 
 interface ErrorRemovePostData {
@@ -323,12 +330,6 @@ const attachUserAnswers = <TItem extends QuestionItem | SolutionItem>(
       item.userAnswer = answer;
     }
   });
-};
-
-const countCorrectAnswers = (solutions: SolutionItem[] = []) => {
-  return solutions.filter((item) => {
-    return item.userAnswer?.choice === item.correctAnswer?.choice;
-  }).length;
 };
 
 const getQuestionIdentity = (item: QuestionItem | SolutionItem) => {
@@ -597,6 +598,17 @@ const extractErrorMaterials = (
 };
 
 export default class WebviewHandle {
+  private leaderboardResults = new Map<string, LeaderboardResult | null>();
+  private leaderboardUploads = new Set<string>();
+
+  private registerLeaderboardSubmission(id: string) {
+    if (!this.leaderboardResults.has(id)) this.leaderboardResults.set(id, null);
+    if (this.leaderboardResults.size > 1000) {
+      this.leaderboardResults.delete(this.leaderboardResults.keys().next().value);
+    }
+    return id;
+  }
+
   onDidReceiveMessage() {
     return webview.onDidReceiveMessage((message) => {
       void this.handleMessage(message).catch((error) => {
@@ -609,6 +621,12 @@ export default class WebviewHandle {
     const { postData, command = "" } = message || {};
 
     switch (command) {
+      case "getLeaderboard":
+        await this.getLeaderboard((postData || {}) as { sort?: LeaderboardSort; page?: number; requestId?: string });
+        return;
+      case "reportLeaderboardResult":
+        await this.reportLeaderboardResult(postData as LeaderboardResult);
+        return;
       case "pageInit":
         await this.pageInit((postData || {}) as PageInitPostData);
         return;
@@ -891,10 +909,11 @@ export default class WebviewHandle {
     webview.postMessage({
       command: "errorPracticeQuestion",
       data: {
-        questions: solutions.map(stripSolution),
+        questions: solutions.map((item) => ({ ...stripSolution(item), userAnswer: undefined })),
         materials,
         questionCount: pagination.total || questionIds.length,
         errorPagination: pagination,
+        leaderboardSubmissionId: this.registerLeaderboardSubmission(hashLeaderboardId(randomUUID())),
       } as QuestionPayload,
     });
   }
@@ -911,6 +930,8 @@ export default class WebviewHandle {
         questionCount: pagination.total || questionIds.length,
         correctCount: 0,
         errorPagination: pagination,
+        leaderboardSubmissionId: params.leaderboardSubmissionId,
+        leaderboardCompletedAt: params.completedAt,
       } as SolutionPayload,
     });
   }
@@ -1255,6 +1276,7 @@ export default class WebviewHandle {
       throw new Error("缺少练习 key，无法交卷");
     }
 
+    const completedAt = new Date().toISOString();
     const submitRes = await submit(category, params.combineKey);
     if (submitRes.msg === "needPayment") {
       webview.postMessage({
@@ -1268,6 +1290,12 @@ export default class WebviewHandle {
     }
 
     const solutionRes = await this.loadSolution(category, params.combineKey);
+    if (!isEssayCategory(category)) {
+      solutionRes.leaderboardSubmissionId = this.registerLeaderboardSubmission(
+        hashLeaderboardId(`${category}:${params.combineKey}`),
+      );
+      solutionRes.leaderboardCompletedAt = completedAt;
+    }
     webview.postMessage({
       command: "solution",
       data: solutionRes,
@@ -1300,10 +1328,45 @@ export default class WebviewHandle {
     );
 
     attachUserAnswers(solutionRes.solutions, res.data?.userAnswers);
-    solutionRes.correctCount = countCorrectAnswers(solutionRes.solutions);
+    solutionRes.correctCount = getObjectiveResultStats(solutionRes.solutions).correctCount;
     solutionRes.questionCount = solutionRes.solutions?.length || 0;
 
     return solutionRes;
+  }
+
+  async getLeaderboard(params: { sort?: LeaderboardSort; page?: number; requestId?: string }) {
+    try {
+      const data = await fetchLeaderboard(params.sort, params.page);
+      webview.postMessage({ command: "leaderboard", data: { ...data, requestId: params.requestId } });
+    } catch (error) {
+      webview.postMessage({
+        command: "leaderboardError",
+        data: { message: getErrorMessage(error), requestId: params.requestId },
+      });
+    }
+  }
+
+  async reportLeaderboardResult(params: LeaderboardResult) {
+    const id = params?.submissionId;
+    if (!id || !this.leaderboardResults.has(id) || this.leaderboardUploads.has(id)) return;
+    const result = this.leaderboardResults.get(id) || params;
+    if (!Number.isInteger(result.questionCount) || result.questionCount < 1 ||
+        !Number.isInteger(result.correctCount) || result.correctCount < 0 ||
+        result.correctCount > result.questionCount) return;
+    this.leaderboardResults.set(id, result);
+    this.leaderboardUploads.add(id);
+    webview.postMessage({ command: "leaderboardReport", data: { submissionId: id, status: "uploading" } });
+    try {
+      await uploadLeaderboardResult(result);
+      webview.postMessage({ command: "leaderboardReport", data: { submissionId: id, status: "success" } });
+    } catch (error) {
+      webview.postMessage({
+        command: "leaderboardReport",
+        data: { submissionId: id, status: "error", message: getErrorMessage(error) },
+      });
+    } finally {
+      this.leaderboardUploads.delete(id);
+    }
   }
 
   jump(params: JumpPostData) {

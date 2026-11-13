@@ -1,4 +1,6 @@
 import * as React from "react";
+import { LeaderboardResultStatus } from "../components/leaderboard-result";
+import "../style/leaderboard.less";
 import { Button, Spin, Modal } from "antd";
 import { RadioChangeEvent } from "antd/es/radio";
 import { groupByMaterialIndexesTo2DArray } from "../utils/analyze";
@@ -307,6 +309,9 @@ export const Detail = () => {
               答对题目数：{solutionData?.correctCount} /{" "}
               {solutionData?.questionCount}{" "}
             </div>
+          )}
+          {page === 2 && (
+            <LeaderboardResultStatus key={solutionData?.leaderboardSubmissionId} data={solutionData} />
           )}
 
           <div style={{ height: "10px" }}></div>

@@ -85,6 +85,11 @@
           "markdownDescription": "cookie，必填，请修改后刷新",
           "editPresentation": "multilineText"
         },
+        "fenbiTools.leaderboardApiUrl": {
+          "type": "string",
+          "default": "https://qipai.work/fenbi-api",
+          "markdownDescription": "排行榜服务地址，默认使用已部署的线上服务。本地联调可改为 http://127.0.0.1:3102"
+        },
         "fenbiTools.color": {
           "type": "string",
           "default": "#ffffff",

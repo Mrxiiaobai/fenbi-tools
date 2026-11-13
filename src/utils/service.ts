@@ -13,6 +13,7 @@ import {
   ExerciseKeyResponse,
   ExerciseResult,
   FavoriteQuizResponse,
+  FenbiUserInfoResponse,
   HistoryResponse,
   MaterialData,
   PaperCatalogPayload,
@@ -400,7 +401,7 @@ export const submit = async (category = "xingce", combineKey: string) => {
 
 export const getUserInfo = async () => {
   const url = `https://login.fenbi.com/api/users/info?app=web&kav=100&av=121&hav=100&version=3.0.0.0`;
-  const res = await ajax("GET", url);
+  const res = await ajax<FenbiUserInfoResponse>("GET", url);
   return res;
 };
 

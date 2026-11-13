@@ -8,6 +8,7 @@ import { Answer } from "./pages/Answer";
 import { Errors } from "./pages/Errors";
 import { ErrorsDetail } from "./pages/ErrorsDetail";
 import { Papers } from "./pages/Papers";
+import { Leaderboard } from "./pages/Leaderboard";
 import { SettingProvider } from "./components/hooks";
 import { DisguiseProvider, useDisguise } from "./components/disguise";
 import { useVscodeMessage } from "./hooks/useVscodeMessage";
@@ -46,6 +47,7 @@ export const App = () => {
               <Route path="/errors" element={<Errors />} />
               <Route path="/errors-detail" element={<ErrorsDetail />} />
               <Route path="/papers" element={<Papers />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               {/* <Route path="*" element={<NotFound />} /> */}
             </Routes>
           </HashRouter>

@@ -1,4 +1,7 @@
 import * as React from "react";
+import { getObjectiveResultStats } from "../../shared/resultStats";
+import { LeaderboardResultStatus } from "../components/leaderboard-result";
+import "../style/leaderboard.less";
 import { Button, Modal, Pagination, Spin } from "antd";
 import { RadioChangeEvent } from "antd/es/radio";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -196,6 +199,8 @@ export const ErrorsDetail = () => {
             page: currentPage,
             limit: errorPageSize,
             total,
+            leaderboardSubmissionId: questionData?.leaderboardSubmissionId,
+            completedAt: new Date().toISOString(),
           },
         });
       },
@@ -239,19 +244,12 @@ export const ErrorsDetail = () => {
       );
       const solutionsWithUserAnswers = (data.solutions || []).map((item) => {
         const userAnswer = userAnswerMap.get(getQuestionKey(item));
-        return userAnswer ? { ...item, userAnswer } : item;
+        return { ...item, userAnswer };
       });
-      const correctCount = solutionsWithUserAnswers.filter((item) => {
-        return item.userAnswer?.choice === item.correctAnswer?.choice;
-      }).length;
+      const { correctCount } = getObjectiveResultStats(solutionsWithUserAnswers);
 
       const correctQuestionIds = solutionsWithUserAnswers
-        .filter((item) => {
-          return (
-            item.userAnswer?.choice &&
-            item.userAnswer.choice === item.correctAnswer?.choice
-          );
-        })
+        .filter((item) => getObjectiveResultStats([item]).correctCount === 1)
         .map((item) => getQuestionKey(item))
         .filter(Boolean);
 
@@ -322,6 +320,9 @@ export const ErrorsDetail = () => {
               答对题目数：{solutionData?.correctCount} /{" "}
               {solutionData?.questionCount}
             </div>
+          )}
+          {viewMode === "solution" && (
+            <LeaderboardResultStatus key={solutionData?.leaderboardSubmissionId} data={solutionData} />
           )}
 
           <div style={{ height: "10px" }}></div>
