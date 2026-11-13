@@ -15,6 +15,7 @@ import CanvasDrawing from "../components/canvas-drawing";
 import { getVscodeApi } from "../utils/vscodeApi";
 import { SELECTENUM } from "../utils/constant";
 import { useVscodeMessage } from "../hooks/useVscodeMessage";
+import { formatStudyTime, useStudyTimer } from "../hooks/useStudyTimer";
 
 import "../style/detail.less";
 
@@ -58,6 +59,9 @@ export const ErrorsDetail = () => {
     Array<number | string>
   >([]);
   const answerTimerRef = React.useRef(Date.now());
+  const pausedAtRef = React.useRef<number | null>(null);
+  const studyTimer = useStudyTimer();
+  const [isPaused, setIsPaused] = React.useState(false);
 
   const navigate = useNavigate();
   const location = useLocation();
@@ -104,7 +108,27 @@ export const ErrorsDetail = () => {
   }, []);
 
   const onBack = () => {
+    studyTimer.destroy();
+    pausedAtRef.current = null;
+    setIsPaused(false);
     navigate(-1);
+  };
+
+  const onPause = () => {
+    if (!studyTimer.isRunning) return;
+    pausedAtRef.current = Date.now();
+    studyTimer.pause();
+    setIsPaused(true);
+  };
+
+  const onResume = () => {
+    const pausedAt = pausedAtRef.current;
+    if (pausedAt === null) return;
+
+    answerTimerRef.current += Date.now() - pausedAt;
+    pausedAtRef.current = null;
+    studyTimer.resume();
+    setIsPaused(false);
   };
 
   const getAnswerTime = React.useCallback(() => {
@@ -159,6 +183,9 @@ export const ErrorsDetail = () => {
     modal.confirm({
       title: "确认提交",
       onOk: () => {
+        studyTimer.destroy();
+        pausedAtRef.current = null;
+        setIsPaused(false);
         setLoading(true);
         vscode.postMessage({
           command: "getErrorPracticeSolution",
@@ -200,6 +227,7 @@ export const ErrorsDetail = () => {
       setTotal(Number(pagination.total) || data.questionCount || 0);
       setCurrentPage(Number(pagination.page) || currentPage);
       answerTimerRef.current = Date.now();
+      studyTimer.start();
     }
 
     if (message.command === "errorPracticeSolution") {
@@ -237,6 +265,9 @@ export const ErrorsDetail = () => {
         });
       }
 
+      studyTimer.destroy();
+      pausedAtRef.current = null;
+      setIsPaused(false);
       setViewMode("solution");
       setSolutionData({
         ...data,
@@ -263,6 +294,17 @@ export const ErrorsDetail = () => {
             <Button type="text" onClick={onBack}>
               返回上一页
             </Button>
+            {studyTimer.isStarted && viewMode === "question" && (
+              <Button
+                className="study-timer-button"
+                type="text"
+                onClick={onPause}
+                disabled={isPaused || loading}
+                aria-label="暂停计时"
+              >
+                {formatStudyTime(studyTimer.elapsedSeconds)}
+              </Button>
+            )}
             {viewMode === "question" && (
               <Button
                 type="primary"
@@ -294,6 +336,7 @@ export const ErrorsDetail = () => {
                   data={item}
                   index={index}
                   materials={groupMaterials}
+                  disabled={isPaused}
                   questionNumberOffset={(currentPage - 1) * errorPageSize}
                 />
               );
@@ -317,6 +360,7 @@ export const ErrorsDetail = () => {
                 current={currentPage}
                 pageSize={errorPageSize}
                 total={total}
+                disabled={isPaused}
                 showSizeChanger={false}
                 onChange={loadPage}
               />
@@ -328,6 +372,21 @@ export const ErrorsDetail = () => {
       </Spin>
 
       {contextHolder}
+      <Modal
+        open={isPaused}
+        centered
+        closable={false}
+        maskClosable={false}
+        keyboard={false}
+        title="做题已暂停"
+        footer={
+          <Button type="primary" onClick={onResume}>
+            继续做题
+          </Button>
+        }
+      >
+        <div>计时已暂停，继续后可以恢复答题。</div>
+      </Modal>
     </div>
   );
 };

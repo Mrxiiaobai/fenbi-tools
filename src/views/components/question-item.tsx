@@ -12,6 +12,7 @@ interface TQuestionItemProps {
   data: QuestionRenderItem[];
   materials: TMaterials[];
   index: number;
+  disabled?: boolean;
   onChange: (
     e: RadioChangeEvent,
     item: QuestionRenderItem,
@@ -41,6 +42,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
     materials = [],
     onChange,
     index: _index,
+    disabled = false,
     questionNumberOffset = 0,
   } = props;
 
@@ -110,7 +112,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                           style={{ justifyContent: "space-between" }}
                         >
                           {isMultiple ? (
-                            <Checkbox value={index2}>
+                            <Checkbox value={index2} disabled={disabled}>
                               <div
                                 style={{
                                   textDecoration: excluded
@@ -127,7 +129,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                               </div>
                             </Checkbox>
                           ) : (
-                            <Radio value={index2}>
+                            <Radio value={index2} disabled={disabled}>
                               <div
                                 style={{
                                   textDecoration: excluded
@@ -147,6 +149,7 @@ export const QuestionItem = (props: TQuestionItemProps) => {
                           {setting.needLineThrough ? (
                             <Button
                               size="small"
+                              disabled={disabled}
                               onClick={() => {
                                 const key = `${index}-${ind}-${index2}`;
                                 setExcludeMap((prev) => ({

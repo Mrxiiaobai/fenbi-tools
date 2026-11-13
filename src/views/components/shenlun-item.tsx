@@ -9,6 +9,7 @@ interface TShenlunItemProps {
   data: ShenlunRenderItem[];
   materials: TMaterials[];
   index: number;
+  disabled?: boolean;
   onChange: (text: string, item: ShenlunRenderItem, index: number) => void;
 }
 
@@ -19,6 +20,7 @@ export const ShenlunItem = (props: TShenlunItemProps) => {
     materials = [],
     onChange,
     index,
+    disabled = false,
   } = props;
 
   return (
@@ -48,6 +50,7 @@ export const ShenlunItem = (props: TShenlunItemProps) => {
                     defaultValue={ele?.userAnswer?.answer || ""}
                     maxLength={access?.wordCount || undefined}
                     allowClear
+                    disabled={disabled}
                     placeholder="请输入答案..."
                     showCount
                     rows={6}

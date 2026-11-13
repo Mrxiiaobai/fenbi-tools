@@ -19,6 +19,7 @@ import CanvasDrawing from "../components/canvas-drawing";
 import "../style/detail.less";
 import { isEssayCategory } from "../utils/constant";
 import { useVscodeMessage } from "../hooks/useVscodeMessage";
+import { formatStudyTime, useStudyTimer } from "../hooks/useStudyTimer";
 
 const vscode = getVscodeApi();
 let modalIs = false;
@@ -38,6 +39,9 @@ export const Detail = () => {
   const [isFirst, setFirst] = React.useState(false);
   const [startTime, setStartTime] = React.useState(0);
   const answerTimerRef = React.useRef(Date.now());
+  const pausedAtRef = React.useRef<number | null>(null);
+  const studyTimer = useStudyTimer();
+  const [isPaused, setIsPaused] = React.useState(false);
   const [loading, setLoading] = React.useState(true);
 
   const [page, setPage] = React.useState<number>(1);
@@ -78,8 +82,9 @@ export const Detail = () => {
       setFirst(true);
       setStartTime(now);
       answerTimerRef.current = now;
+      studyTimer.start();
     }
-  }, [questionData?.questions]);
+  }, [questionData?.questions, isFirst, studyTimer.start]);
 
   const getAnswerTime = React.useCallback(() => {
     const now = Date.now();
@@ -137,7 +142,27 @@ export const Detail = () => {
   };
 
   const onBack = () => {
+    studyTimer.destroy();
+    pausedAtRef.current = null;
+    setIsPaused(false);
     navigate(-1);
+  };
+
+  const onPause = () => {
+    if (!studyTimer.isRunning) return;
+    pausedAtRef.current = Date.now();
+    studyTimer.pause();
+    setIsPaused(true);
+  };
+
+  const onResume = () => {
+    const pausedAt = pausedAtRef.current;
+    if (pausedAt === null) return;
+
+    answerTimerRef.current += Date.now() - pausedAt;
+    pausedAtRef.current = null;
+    studyTimer.resume();
+    setIsPaused(false);
   };
 
   const onRaioChange = (e: RadioChangeEvent, item: TQuestionItem) => {
@@ -176,6 +201,9 @@ export const Detail = () => {
     modal.confirm({
       title: "确认提交",
       onOk: () => {
+        studyTimer.destroy();
+        pausedAtRef.current = null;
+        setIsPaused(false);
         setLoading(true);
         vscode.postMessage({
           command: "submit",
@@ -230,6 +258,9 @@ export const Detail = () => {
       modalIs = true;
     }
     if (message.command === "solution") {
+      studyTimer.destroy();
+      pausedAtRef.current = null;
+      setIsPaused(false);
       setPage(2);
       setSolutionData(message.data as TSolutionData);
     }
@@ -243,6 +274,17 @@ export const Detail = () => {
             <Button type="text" onClick={onBack}>
               返回上一页
             </Button>
+            {studyTimer.isStarted && page === 1 && (
+              <Button
+                className="study-timer-button"
+                type="text"
+                onClick={onPause}
+                disabled={isPaused || loading}
+                aria-label="暂停计时"
+              >
+                {formatStudyTime(studyTimer.elapsedSeconds)}
+              </Button>
+            )}
             {page == 1 && (
               <>
                 <Button
@@ -279,6 +321,7 @@ export const Detail = () => {
                     data={item}
                     index={index}
                     materials={questionData?.materials || []}
+                    disabled={isPaused}
                   />
                 );
               }
@@ -289,6 +332,7 @@ export const Detail = () => {
                   data={item}
                   index={index}
                   materials={questionData?.materials || []}
+                  disabled={isPaused}
                 />
               );
             })}
@@ -309,6 +353,21 @@ export const Detail = () => {
       </Spin>
 
       {contextHolder}
+      <Modal
+        open={isPaused}
+        centered
+        closable={false}
+        maskClosable={false}
+        keyboard={false}
+        title="做题已暂停"
+        footer={
+          <Button type="primary" onClick={onResume}>
+            继续做题
+          </Button>
+        }
+      >
+        <div>计时已暂停，继续后可以恢复答题。</div>
+      </Modal>
     </div>
   );
 };
