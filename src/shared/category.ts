@@ -1,6 +1,7 @@
 export enum SELECTENUM {
   XINGCE = "xingce",
   SHENLUN = "shenlun",
+  GAZJ = "gazj",
   SYZC = "syzc",
   SYDW = "sydw",
   ZHYYNL = "zhyynl",
@@ -34,6 +35,14 @@ export const categoryRouteConfigMap: Record<string, CategoryRouteConfig> = {
     tikuPrefix: SELECTENUM.SHENLUN,
     answerMode: "essay",
     apiCategory: SELECTENUM.SHENLUN,
+    historyCategoryId: 4,
+  },
+  [SELECTENUM.GAZJ]: {
+    routecs: SELECTENUM.GAZJ,
+    courseSetPrefix: SELECTENUM.GAZJ,
+    tikuPrefix: SELECTENUM.GAZJ,
+    answerMode: "objective",
+    apiCategory: SELECTENUM.GAZJ,
     historyCategoryId: 4,
   },
   [SELECTENUM.SYZC]: {

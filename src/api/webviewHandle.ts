@@ -70,6 +70,8 @@ import {
 import { getFenbiHlsPlayerUrl, getFenbiHlsProxyUrl } from "../utils/hlsProxy";
 import { webview } from "../utils/webview";
 
+const POLICE_ACADEMY_QUIZ_ID = 1231;
+
 interface HistoryPostData {
   category?: string;
   count?: number;
@@ -745,6 +747,7 @@ export default class WebviewHandle {
         data: {
           categoryId: category,
           favoriteQuizLocationName: "",
+          favoriteQuizCoursePrefixes: [] as string[],
           menu: [] as CategoryNode[],
           cacheResult: {},
         },
@@ -759,14 +762,14 @@ export default class WebviewHandle {
     const config = getCategoryRouteConfig(category);
     const cacheResult = await getCache(config.apiCategory);
     const menu = await getCategories(category);
-    const favoriteQuizLocationName =
-      await this.getFavoriteQuizLocationName(category);
+    const favoriteQuizInfo = await this.getFavoriteQuizInfo(category);
 
     webview.postMessage({
       command: "init",
       data: {
         categoryId: category,
-        favoriteQuizLocationName,
+        favoriteQuizLocationName: favoriteQuizInfo.locationName,
+        favoriteQuizCoursePrefixes: favoriteQuizInfo.coursePrefixes,
         menu,
         cacheResult: cacheResult || {},
       },
@@ -929,22 +932,34 @@ export default class WebviewHandle {
     );
   }
 
-  async getFavoriteQuizLocationName(category?: string) {
+  async getFavoriteQuizInfo(category?: string) {
     const courseSetPrefix = getFavoriteQuizCourseSetPrefix(category);
     try {
       const res = await getCourseSetFavoriteQuiz({ courseSetPrefix });
       const favoriteQuizData: FavoriteQuizResponseData = res.data || {
         currentQuizVO: res.currentQuizVO,
         favoriteQuizVO: res.favoriteQuizVO,
+        courseVOList: res.courseVOList,
       };
       const currentQuizId = favoriteQuizData.currentQuizVO?.quizId;
-      return (
-        favoriteQuizData.favoriteQuizVO?.find((item) => {
-          return item.id === currentQuizId;
-        })?.name || ""
-      );
+      const coursePrefixes =
+        favoriteQuizData.courseVOList?.map((course) => course.prefix) || [];
+      // The legacy xingce course list can omit the police subject for this exam.
+      if (
+        currentQuizId === POLICE_ACADEMY_QUIZ_ID &&
+        !coursePrefixes.includes(SELECTENUM.GAZJ)
+      ) {
+        coursePrefixes.push(SELECTENUM.GAZJ);
+      }
+      return {
+        locationName:
+          favoriteQuizData.favoriteQuizVO?.find((item) => {
+            return item.id === currentQuizId;
+          })?.name || "",
+        coursePrefixes,
+      };
     } catch (_error) {
-      return "";
+      return { locationName: "", coursePrefixes: [] as string[] };
     }
   }
 

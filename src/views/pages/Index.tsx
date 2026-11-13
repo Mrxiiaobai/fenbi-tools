@@ -19,7 +19,7 @@ import { useNavigate } from "react-router-dom";
 import { useSetting } from "../components/hooks";
 import {
   SELECTENUM,
-  categoryOptions,
+  getCategoryOptions,
   getCategoryRouteConfig,
   isInterviewCategory,
 } from "../utils/constant";
@@ -259,6 +259,8 @@ export const Home = () => {
   const [loading, setLoading] = React.useState(true);
   const [favoriteQuizLocationName, setFavoriteQuizLocationName] =
     React.useState("");
+  const [favoriteQuizCoursePrefixes, setFavoriteQuizCoursePrefixes] =
+    React.useState<string[]>([]);
   const [smartModalOpen, setSmartModalOpen] = React.useState(false);
   const [settingsModalOpen, setSettingsModalOpen] = React.useState(false);
   const [smartYearScope, setSmartYearScope] = React.useState(0);
@@ -505,6 +507,7 @@ export const Home = () => {
         if (message.command === "init") {
           const data = message.data as {
             favoriteQuizLocationName?: string;
+            favoriteQuizCoursePrefixes?: string[];
             menu?: CategoryNode[];
             cacheResult?: {
               keypointIds?: Array<number | string>;
@@ -512,6 +515,7 @@ export const Home = () => {
             };
           };
           setFavoriteQuizLocationName(data.favoriteQuizLocationName || "");
+          setFavoriteQuizCoursePrefixes(data.favoriteQuizCoursePrefixes || []);
           const _data = modifyArrayToTree(
             data.menu || [],
             data.cacheResult || {},
@@ -594,7 +598,7 @@ export const Home = () => {
           </Flex>
           <Flex align="center">
             <Select
-              options={categoryOptions}
+              options={getCategoryOptions(favoriteQuizCoursePrefixes)}
               value={mainCategoryValue}
               style={{ width: 120, margin: "10px" }}
               onChange={onChangeCategory}

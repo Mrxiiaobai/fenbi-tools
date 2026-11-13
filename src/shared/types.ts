@@ -366,12 +366,18 @@ export interface FavoriteQuizResponseData {
     id: number;
     name: string;
   }>;
+  courseVOList?: Array<{
+    id: number;
+    name: string;
+    prefix: string;
+  }>;
 }
 
 export interface FavoriteQuizResponse {
   data?: FavoriteQuizResponseData;
   currentQuizVO?: FavoriteQuizResponseData["currentQuizVO"];
   favoriteQuizVO?: FavoriteQuizResponseData["favoriteQuizVO"];
+  courseVOList?: FavoriteQuizResponseData["courseVOList"];
 }
 
 export interface WebviewRequestMessage<T = unknown> {

@@ -54,3 +54,12 @@ export const categoryOptions = [
     value: SELECTENUM.SYDWMS,
   },
 ];
+
+export const getCategoryOptions = (coursePrefixes: string[] = []) => {
+  if (!coursePrefixes.includes(SELECTENUM.GAZJ)) return categoryOptions;
+
+  return [
+    ...categoryOptions,
+    { label: "公安专业科目", value: SELECTENUM.GAZJ },
+  ];
+};
