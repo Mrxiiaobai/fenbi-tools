@@ -1,5 +1,9 @@
 # Change Log
 
+# 1.2.5
+
+- 画板和智能伪装支持在 VS Code 的「键盘快捷方式」中改键或解绑，搜索 `Fenbi Tools` 即可找到。画板默认使用 `Ctrl+H`（macOS：`Command+H`），智能伪装默认使用 `Ctrl+K`（macOS：`Command+K`）。
+
 # 1.2.3
 
 增加计时、修复文字显示�问题

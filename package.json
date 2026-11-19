@@ -3,8 +3,8 @@
   "displayName": "Fenbi Tools",
   "description": "粉笔考公&摸鱼学习、考公必备，支持自定义数量、刷题历史、申论等功能",
   "icon": "resources/dark/fish.png",
-  "version": "1.2.4",
-  "license": "ISC",
+  "version": "1.2.5",
+  "license": "PolyForm-Noncommercial-1.0.0",
   "engines": {
     "vscode": "^1.96.0"
   },
