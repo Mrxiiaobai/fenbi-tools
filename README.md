@@ -1,5 +1,7 @@
 # fenbi-tools README
 
+vscode 摸鱼学习插件
+
 # 作用
 
 刷粉笔题！ 行测&申论&事业编刷题！
@@ -20,6 +22,8 @@
 ```javascript
     https://github.com/Mrxiiaobai/fenbi-tools
 ```
+
+看到有时间会解决
 
 # 使用问题
 
