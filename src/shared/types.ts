@@ -429,6 +429,9 @@ export interface FavoriteQuizResponse {
   courseVOList?: FavoriteQuizResponseData["courseVOList"];
 }
 
+export const sidebarActions = ["toggleCanvas", "toggleDisguise"] as const;
+export type SidebarAction = (typeof sidebarActions)[number];
+
 export interface WebviewRequestMessage<T = unknown> {
   command: string;
   postData?: T;

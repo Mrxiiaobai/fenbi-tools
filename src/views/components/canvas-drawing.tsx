@@ -1,14 +1,48 @@
 import { Button } from "antd";
 import * as React from "react";
+import { useSidebarAction } from "../hooks/useSidebarAction";
+import { useDisguise } from "./disguise";
 import { useSetting } from "./hooks";
 
-export default function CanvasDrawing() {
+const acceptsCanvasShortcut = () => {
+  const target = document.activeElement;
+  return !(target instanceof HTMLElement && (target.isContentEditable ||
+    target.closest('textarea, select, input:not([type="radio"]):not([type="checkbox"]), [role="dialog"]')));
+};
+
+export default function CanvasDrawing({
+  shortcutsEnabled,
+}: { shortcutsEnabled: boolean }) {
   const [showDraw, setShowDraw] = React.useState(false);
+  const { disguiseEnabled } = useDisguise();
+  const enabled = shortcutsEnabled && !disguiseEnabled;
+  useSidebarAction("toggleCanvas", () => setShowDraw((open) => !open), enabled, acceptsCanvasShortcut);
+
+  React.useEffect(() => {
+    if (!enabled || !showDraw) return;
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (
+        event.key !== "Escape" || event.defaultPrevented || event.isComposing || event.shiftKey ||
+        event.altKey || event.ctrlKey || event.metaKey || !acceptsCanvasShortcut()
+      ) return;
+
+      event.preventDefault();
+      event.stopPropagation();
+      setShowDraw(false);
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
+  }, [enabled, showDraw]);
 
   return (
     <>
       {!showDraw && (
-        <Button className="draw_button" onClick={() => setShowDraw(true)}>
+        <Button
+          className="draw_button"
+          onClick={() => setShowDraw(true)}
+        >
           打开画板
         </Button>
       )}
@@ -275,7 +309,12 @@ const CanvasDraw = ({ onClose }: { onClose: () => void }) => {
 
       {/* 操作按钮固定在右上，但不干扰 canvas 滚动 */}
       <div style={{ position: "fixed", top: 0, right: 0, zIndex: 999 }}>
-        <Button onClick={onClose} style={{ marginRight: 8 }}>
+        <Button
+          onClick={onClose}
+          title="关闭画板 (Esc)"
+          aria-keyshortcuts="Escape"
+          style={{ marginRight: 8 }}
+        >
           关闭画板
         </Button>
         <Button onClick={clearCanvas}>清空</Button>

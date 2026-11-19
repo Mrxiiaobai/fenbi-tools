@@ -38,6 +38,7 @@ import {
   SydwmsSolutionPayload,
   UserAnswers,
   WebviewRequestMessage,
+  sidebarActions,
 } from "../shared/types";
 import {
   changeQuestionCount,
@@ -621,6 +622,14 @@ export default class WebviewHandle {
     const { postData, command = "" } = message || {};
 
     switch (command) {
+      case "sidebarShortcutContext": {
+        const context = postData as { action?: string; available?: boolean } | undefined;
+        const action = sidebarActions.find((name) => name === context?.action);
+        if (action && typeof context?.available === "boolean") {
+          await vscode.commands.executeCommand("setContext", `fenbiTools.${action}Available`, context.available);
+        }
+        return;
+      }
       case "getLeaderboard":
         await this.getLeaderboard((postData || {}) as { sort?: LeaderboardSort; page?: number; requestId?: string });
         return;

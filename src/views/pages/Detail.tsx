@@ -343,7 +343,7 @@ export const Detail = () => {
             })}
           </div>
 
-          <CanvasDrawing />
+          <CanvasDrawing shortcutsEnabled={!loading && !isPaused} />
 
           {page == 1 && (
             <Button

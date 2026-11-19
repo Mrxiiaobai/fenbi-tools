@@ -12,7 +12,7 @@ export const useVscodeMessage = (
 
   React.useEffect(() => {
     const listener = (event: MessageEvent<VscodeHostMessage>) => {
-      handlerRef.current(event.data);
+      if (typeof event.data?.command === "string") handlerRef.current(event.data);
     };
 
     window.addEventListener("message", listener);

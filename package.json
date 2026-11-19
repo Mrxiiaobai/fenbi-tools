@@ -56,10 +56,30 @@
       {
         "command": "openFenbiWebview.toggleDisguise",
         "title": "智能伪装",
+        "category": "Fenbi Tools",
         "icon": {
           "light": "resources/light/disguise.svg",
           "dark": "resources/dark/disguise.svg"
         }
+      },
+      {
+        "command": "openFenbiWebview.toggleCanvas",
+        "title": "切换画板",
+        "category": "Fenbi Tools"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "openFenbiWebview.toggleCanvas",
+        "key": "ctrl+h",
+        "mac": "cmd+h",
+        "when": "fenbiTools.toggleCanvasAvailable"
+      },
+      {
+        "command": "openFenbiWebview.toggleDisguise",
+        "key": "ctrl+k",
+        "mac": "cmd+k",
+        "when": "fenbiTools.toggleDisguiseAvailable"
       }
     ],
     "menus": {

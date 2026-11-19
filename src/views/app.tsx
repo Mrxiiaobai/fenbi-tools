@@ -11,23 +11,14 @@ import { Papers } from "./pages/Papers";
 import { Leaderboard } from "./pages/Leaderboard";
 import { SettingProvider } from "./components/hooks";
 import { DisguiseProvider, useDisguise } from "./components/disguise";
-import { useVscodeMessage } from "./hooks/useVscodeMessage";
+import { useSidebarAction } from "./hooks/useSidebarAction";
 
 import "./style/index.less";
 import "./style/disguise.less";
 
 const DisguiseToggleListener: React.FC = () => {
   const { startDisguise } = useDisguise();
-  useVscodeMessage(
-    React.useCallback(
-      (message) => {
-        if (message.command === "showDisguise") {
-          startDisguise();
-        }
-      },
-      [startDisguise],
-    ),
-  );
+  useSidebarAction("toggleDisguise", startDisguise);
   return null;
 };
 

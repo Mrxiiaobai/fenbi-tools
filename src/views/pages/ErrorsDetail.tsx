@@ -368,7 +368,7 @@ export const ErrorsDetail = () => {
             </div>
           )}
 
-          <CanvasDrawing />
+          <CanvasDrawing shortcutsEnabled={!loading && !isPaused} />
         </div>
       </Spin>
 
