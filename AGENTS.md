@@ -109,6 +109,7 @@ The extension requires users to:
 
 ## Development Notes
 
+- With every project change, add or update a concise Chinese entry under `未发布` in `CHANGELOG.md` in the same patch. Group related edits into one entry. When releasing, move those entries under the release version.
 - TypeScript compilation uses `transpileOnly: true` in webpack for faster builds
 - The `src/views/` directory is excluded from main tsconfig.json compilation
 - Webview HTML is dynamically generated in `src/utils/func.ts` (`templateHtml` function)
